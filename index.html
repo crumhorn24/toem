@@ -5,11 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Driving Game Menu</title>
     <style>
+        /* Base styling */
         body {
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #1e1e2f, #111119);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            transition: background 0.3s ease;
+        }
+
+        /* Menu View Style (Dark Mode) */
+        .menu-view {
+            background: linear-gradient(135deg, #1e1e2f, #111119);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -65,7 +72,6 @@
             width: 100%;
         }
 
-        /* SVG styling for clean scaling */
         .vehicle-svg {
             width: 80%;
             height: auto;
@@ -84,84 +90,111 @@
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             padding-top: 15px;
         }
+
+        /* Game Screen View Style (Blank White Mode) */
+        .game-view {
+            display: none; /* Hidden by default */
+            background: #ffffff;
+            color: #111119;
+            min-height: 100vh;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 40px;
+            box-sizing: border-box;
+        }
+
+        #game-title {
+            font-size: 3rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Select Your Vehicle</h1>
+    <!-- SECTION 1: THE MENU VIEW -->
+    <div id="menu-view" class="menu-view">
+        <h1>Select Your Vehicle</h1>
 
-    <div class="menu-container">
+        <div class="menu-container">
+            <!-- CAR BUTTON -->
+            <button class="vehicle-btn" onclick="startGame('Car')">
+                <div class="image-wrapper">
+                    <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+                        <circle cx="7" cy="17" r="2" fill="#1e1e2f" />
+                        <circle cx="17" cy="17" r="2" fill="#1e1e2f" />
+                        <path d="M7 17h10" />
+                    </svg>
+                </div>
+                <div class="vehicle-text">Car</div>
+            </button>
 
-        <!-- CAR BUTTON -->
-        <button class="vehicle-btn" onclick="startGame('car')">
-            <div class="image-wrapper">
-                <!-- Clean Sedan Silhouette -->
-                <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
-                    <circle cx="7" cy="17" r="2" fill="#1e1e2f" />
-                    <circle cx="17" cy="17" r="2" fill="#1e1e2f" />
-                    <path d="M7 17h10" />
-                </svg>
-            </div>
-            <div class="vehicle-text">Car</div>
-        </button>
+            <!-- LORRY BUTTON -->
+            <button class="vehicle-btn" onclick="startGame('Lorry')">
+                <div class="image-wrapper">
+                    <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#ff007f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 18H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h11v13z" />
+                        <path d="M14 9h4l3 3v5a1 1 0 0 1-1 1h-6V9z" />
+                        <circle cx="5.5" cy="18" r="1.5" fill="#1e1e2f" />
+                        <circle cx="11.5" cy="18" r="1.5" fill="#1e1e2f" />
+                        <circle cx="17.5" cy="18" r="1.5" fill="#1e1e2f" />
+                    </svg>
+                </div>
+                <div class="vehicle-text">Lorry</div>
+            </button>
 
-        <!-- LORRY BUTTON -->
-        <button class="vehicle-btn" onclick="startGame('lorry')">
-            <div class="image-wrapper">
-                <!-- Semi Truck / Lorry Silhouette -->
-                <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#ff007f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 18H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h11v13z" />
-                    <path d="M14 9h4l3 3v5a1 1 0 0 1-1 1h-6V9z" />
-                    <circle cx="5.5" cy="18" r="1.5" fill="#1e1e2f" />
-                    <circle cx="11.5" cy="18" r="1.5" fill="#1e1e2f" />
-                    <circle cx="17.5" cy="18" r="1.5" fill="#1e1e2f" />
-                </svg>
-            </div>
-            <div class="vehicle-text">Lorry</div>
-        </button>
+            <!-- MOTORCYCLE BUTTON -->
+            <button class="vehicle-btn" onclick="startGame('Motorcycle')">
+                <div class="image-wrapper">
+                    <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#39ff14" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="5" cy="18" r="2.5" />
+                        <circle cx="19" cy="18" r="2.5" />
+                        <path d="M5 18l3-5h6l3 5" />
+                        <path d="M8 13l2-5h4l1 3" />
+                        <path d="M14 8h-3" />
+                    </svg>
+                </div>
+                <div class="vehicle-text">Motorcycle</div>
+            </button>
 
-        <!-- MOTORCYCLE BUTTON -->
-        <button class="vehicle-btn" onclick="startGame('motorcycle')">
-            <div class="image-wrapper">
-                <!-- Sport Motorcycle Silhouette -->
-                <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#39ff14" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="5" cy="18" r="2.5" />
-                    <circle cx="19" cy="18" r="2.5" />
-                    <path d="M5 18l3-5h6l3 5" />
-                    <path d="M8 13l2-5h4l1 3" />
-                    <path d="M14 8h-3" />
-                </svg>
-            </div>
-            <div class="vehicle-text">Motorcycle</div>
-        </button>
+            <!-- BUS BUTTON -->
+            <button class="vehicle-btn" onclick="startGame('Bus')">
+                <div class="image-wrapper">
+                    <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#ffaa00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 18h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z" />
+                        <path d="M2 14h20" />
+                        <path d="M2 10h20" />
+                        <path d="M6 4v6" />
+                        <path d="M12 4v6" />
+                        <path d="M18 4v6" />
+                        <circle cx="6" cy="18" r="1.5" fill="#1e1e2f" />
+                        <circle cx="18" cy="18" r="1.5" fill="#1e1e2f" />
+                    </svg>
+                </div>
+                <div class="vehicle-text">Bus</div>
+            </button>
+        </div>
+    </div>
 
-        <!-- BUS BUTTON -->
-        <button class="vehicle-btn" onclick="startGame('bus')">
-            <div class="image-wrapper">
-                <!-- Transit Bus Silhouette -->
-                <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#ffaa00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 18h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z" />
-                    <path d="M2 14h20" />
-                    <path d="M2 10h20" />
-                    <path d="M6 4v6" />
-                    <path d="M12 4v6" />
-                    <path d="M18 4v6" />
-                    <circle cx="6" cy="18" r="1.5" fill="#1e1e2f" />
-                    <circle cx="18" cy="18" r="1.5" fill="#1e1e2f" />
-                </svg>
-            </div>
-            <div class="vehicle-text">Bus</div>
-        </button>
-
+    <!-- SECTION 2: THE BLANK WHITE GAME VIEW -->
+    <div id="game-view" class="game-view">
+        <h1 id="game-title">Vehicle Name Here</h1>
     </div>
 
     <script>
         function startGame(vehicleType) {
-            alert("Starting game with the " + vehicleType + "!");
+            // 1. Hide the dark menu screen
+            document.getElementById('menu-view').style.display = 'none';
+            
+            // 2. Change the title on the game screen to match the button text
+            document.getElementById('game-title').innerText = vehicleType;
+            
+            // 3. Display the white game screen layout
+            document.getElementById('game-view').style.display = 'flex';
         }
     </script>
 
 </body>
 </html>
-
