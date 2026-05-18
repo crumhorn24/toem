@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D City Driving Simulation</title>
+    <title>City Driving Simulation</title>
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #111119; }
+        body, html { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #111119; user-select: none; }
         
         /* Selection Menu Styling */
         #menu-view {
@@ -24,302 +24,375 @@
         .vehicle-svg { width: 70%; height: auto; max-height: 100px; }
         .vehicle-text { font-size: 1.2rem; font-weight: bold; text-transform: uppercase; color: white; border-top: 1px solid rgba(255,255,255,0.1); width: 100%; text-align: center; padding-top: 10px; }
         
-        /* 3D Gameplay Elements */
-        #canvas-container { width: 100%; height: 100vh; display: none; }
+        /* Gameplay Canvas */
+        #game-canvas { display: none; width: 100vw; height: 100vh; background: #222222; }
+        
+        /* HUD UI */
         #hud {
             position: absolute; top: 20px; left: 20px; color: white; font-weight: bold;
-            background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; display: none; pointer-events: none;
+            background: rgba(0,0,0,0.75); padding: 15px; border-radius: 8px; display: none; pointer-events: none;
+            border: 1px solid #3f3f5f; line-height: 1.6;
         }
-        #controls-hint { position: absolute; bottom: 20px; right: 20px; color: #aaa; font-size: 0.9rem; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; display: none; }
+        #controls-hint { position: absolute; bottom: 20px; left: 20px; color: #aaa; font-size: 0.9rem; background: rgba(0,0,0,0.75); padding: 10px; border-radius: 5px; display: none; border: 1px solid #3f3f5f; }
     </style>
-    
-    <!-- Production-Ready Three.js Script -->
-    <script src="https://cloudflare.com"></script>
 </head>
 <body>
 
     <!-- VEHICLE SELECTION MENU -->
     <div id="menu-view">
-        <h1 id="menu-title">Loading 3D Engine...</h1>
-        <div class="menu-container" id="menu-box" style="opacity: 0.3; pointer-events: none;">
-            <button class="vehicle-btn" onclick="initGame('Car')">
+        <h1>Select Your Vehicle</h1>
+        <div class="menu-container">
+            <button class="vehicle-btn" onclick="initGame('Car', '#00d2ff')">
                 <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="1.5"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
                 <div class="vehicle-text">Car</div>
             </button>
-            <button class="vehicle-btn" onclick="initGame('Lorry')">
+            <button class="vehicle-btn" onclick="initGame('Lorry', '#ff007f')">
                 <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#ff007f" stroke-width="1.5"><path d="M14 18H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h11v13zM14 9h4l3 3v5a1 1 0 0 1-1 1h-6V9z"/><circle cx="5.5" cy="18" r="1.5"/><circle cx="11.5" cy="18" r="1.5"/><circle cx="17.5" cy="18" r="1.5"/></svg>
                 <div class="vehicle-text">Lorry</div>
             </button>
-            <button class="vehicle-btn" onclick="initGame('Motorcycle')">
+            <button class="vehicle-btn" onclick="initGame('Motorcycle', '#39ff14')">
                 <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#39ff14" stroke-width="1.5"><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M5 18l3-5h6l3 5M8 13l2-5h4l1 3"/></svg>
                 <div class="vehicle-text">Motorcycle</div>
             </button>
-            <button class="vehicle-btn" onclick="initGame('Bus')">
+            <button class="vehicle-btn" onclick="initGame('Bus', '#ffaa00')">
                 <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#ffaa00" stroke-width="1.5"><path d="M4 18h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2zM2 14h20M2 10h20M6 4v6M12 4v6M18 4v6"/><circle cx="6" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg>
                 <div class="vehicle-text">Bus</div>
             </button>
         </div>
     </div>
 
-    <!-- 3D GRAPHICS CONTAINER -->
-    <div id="canvas-container"></div>
+    <!-- GAME CANVAS -->
+    <canvas id="game-canvas"></canvas>
 
-    <!-- GAMEPLAY INTERFACE -->
+    <!-- GAMEPLAY HUD -->
     <div id="hud">
         Vehicle: <span id="hud-type">-</span><br>
         Speed: <span id="hud-speed">0</span> KM/H<br>
         Indicator: <span id="hud-signal">OFF</span>
     </div>
-    <div id="controls-hint">Use WASD or Arrows to drive. Q/E for Indicators. Space to brake.</div>
+    <div id="controls-hint">W/S: Accelerate/Brake | A/D: Steer Wheel | Q/E: Indicators</div>
 
-    <!-- GAME ENGINE LOGIC -->
     <script>
-        let scene, camera, renderer, playerCar, steeringWheel;
-        let keys = { w:0, a:0, s:0, d:0, q:0, e:0 };
-        let speed = 0, turnAngle = 0;
-        let npcCars = [], pedestrians = [];
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        
         let audioCtx;
-
-        // Unlock menu interface when background files load completely
-        window.addEventListener('load', () => {
-            if (typeof THREE !== 'undefined') {
-                document.getElementById('menu-title').innerText = "Select Your Vehicle";
-                document.getElementById('menu-box').style.opacity = "1";
-                document.getElementById('menu-box').style.pointerEvents = "auto";
-            } else {
-                document.getElementById('menu-title').innerText = "Engine Load Failure. Refresh Page.";
-            }
-        });
+        let keys = { w:0, a:0, s:0, d:0 };
+        let gameRunning = false;
+        
+        // Player state
+        let player = {
+            x: 0, y: 0, speed: 0, angle: 0, type: '', color: '',
+            steerAngle: 0, width: 30, length: 60
+        };
+        
+        // World Entities
+        let npcCars = [];
+        let pedestrians = [];
+        let roadSigns = [];
+        let indicators = { left: false, right: false, timer: 0 };
 
         function initAudio() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        window.initGame = function(selectedType) {
+        window.initGame = function(type, color) {
             initAudio();
             document.getElementById('menu-view').style.display = 'none';
-            document.getElementById('canvas-container').style.display = 'block';
+            canvas.style.display = 'block';
             document.getElementById('hud').style.display = 'block';
             document.getElementById('controls-hint').style.display = 'block';
-            document.getElementById('hud-type').innerText = selectedType;
+            document.getElementById('hud-type').innerText = type;
 
-            setup3DWorld(selectedType);
-        };
+            // Adjust size properties depending on choice
+            player.type = type;
+            player.color = color;
+            if (type === 'Lorry') { player.width = 36; player.length = 110; }
+            if (type === 'Bus') { player.width = 38; player.length = 130; }
+            if (type === 'Motorcycle') { player.width = 14; player.length = 40; }
 
-        function setup3DWorld(type) {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xaaccff);
-            scene.fog = new THREE.FogExp2(0xaaccff, 0.015);
+            resizeCanvas();
+            player.x = canvas.width / 2;
+            player.y = canvas.height * 0.7;
 
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-            // Strong directional sun lighting to make models visible
-            const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
-            sunLight.position.set(50, 100, 50);
-            sunLight.castShadow = true;
-            scene.add(sunLight);
-            
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-            scene.add(ambientLight);
-
-            createCityLayout();
-            createPlayerVehicle(type);
-            spawnTraffic();
-            spawnPedestrians();
+            // Generate map contents relative to start position
+            generateWorldObjects();
 
             window.addEventListener('keydown', (e) => handleInput(e, true));
             window.addEventListener('keyup', (e) => handleInput(e, false));
-            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('resize', resizeCanvas);
 
+            gameRunning = true;
             animateLoop();
+        };
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         }
 
-        function createCityLayout() {
-            const floorGeo = new THREE.PlaneGeometry(2000, 2000);
-            const floorMat = new THREE.MeshStandardMaterial({ color: 0x557a46 });
-            const floor = new THREE.Mesh(floorGeo, floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            floor.receiveShadow = true;
-            scene.add(floor);
-
-            const roadMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
-            const mainStreet = new THREE.Mesh(new THREE.PlaneGeometry(40, 2000), roadMat);
-            mainStreet.rotation.x = -Math.PI / 2;
-            mainStreet.position.y = 0.02;
-            mainStreet.receiveShadow = true;
-            scene.add(mainStreet);
-
-            const buildGeo = new THREE.BoxGeometry(25, 50, 25);
-            const buildMat = new THREE.MeshStandardMaterial({ color: 0xb0bec5 });
-            for(let i = -800; i < 800; i += 100) {
-                if (Math.abs(i) < 50) continue;
-                let b1 = new THREE.Mesh(buildGeo, buildMat);
-                b1.position.set(-45, 25, i);
-                b1.castShadow = true;
-                scene.add(b1);
-
-                let b2 = new THREE.Mesh(buildGeo, buildMat);
-                b2.position.set(45, 25, i);
-                b2.castShadow = true;
-                scene.add(b2);
+        function generateWorldObjects() {
+            // Spawn traffic loops
+            for(let i = 0; i < 6; i++) {
+                npcCars.push({
+                    x: canvas.width / 2 + 50,
+                    y: -400 - (i * 350),
+                    speed: 3,
+                    width: 32,
+                    length: 65,
+                    color: '#78909c',
+                    honkCooldown: 0
+                });
             }
 
-            const crossMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            for(let step = -16; step <= 16; step += 4) {
-                let stripe = new THREE.Mesh(new THREE.PlaneGeometry(2, 12), crossMat);
-                stripe.rotation.x = -Math.PI / 2;
-                stripe.position.set(step, 0.03, 100);
-                scene.add(stripe);
+            // Zebra crosswalk pedestrians
+            for(let i = 0; i < 3; i++) {
+                pedestrians.push({
+                    x: canvas.width / 2 - 200,
+                    y: -100 - (i * 600),
+                    dir: 1,
+                    speed: 1.5,
+                    state: 'walking',
+                    fallAngle: 0
+                });
             }
-        }
 
-        function createPlayerVehicle(type) {
-            playerCar = new THREE.Group();
-
-            let w = 3, h = 2, l = 6, color = 0x00d2ff;
-            if(type === 'Lorry') { h = 4.5; l = 14; color = 0xff007f; }
-            if(type === 'Bus') { h = 4; l = 16; color = 0xffaa00; }
-            if(type === 'Motorcycle') { w = 1; h = 1.4; l = 2.5; color = 0x39ff14; }
-
-            const bodyGeo = new THREE.BoxGeometry(w, h, l);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.2 });
-            const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
-            bodyMesh.position.y = h/2 + 0.5;
-            bodyMesh.castShadow = true;
-            playerCar.add(bodyMesh);
-
-            const wheelGeo = new THREE.TorusGeometry(0.35, 0.08, 8, 24);
-            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x050505 });
-            steeringWheel = new THREE.Mesh(wheelGeo, wheelMat);
-            steeringWheel.position.set(w * 0.25, h * 0.75, l * 0.2);
-            playerCar.add(steeringWheel);
-
-            playerCar.position.set(0, 0, 0);
-            scene.add(playerCar);
-        }
-
-        function spawnTraffic() {
-            const npcMat = new THREE.MeshStandardMaterial({ color: 0x78909c });
-            const npcGeo = new THREE.BoxGeometry(3, 2, 6);
-            for(let i = 0; i < 5; i++) {
-                let npc = new THREE.Mesh(npcGeo, npcMat);
-                npc.position.set(8, 1.5, -200 - (i * 120));
-                scene.add(npc);
-                npcCars.push(npc);
+            // Scenic decorations
+            for(let i = -2000; i < 1000; i += 300) {
+                roadSigns.push({ x: canvas.width / 2 - 120, y: i, type: 'STOP' });
+                roadSigns.push({ x: canvas.width / 2 + 120, y: i + 150, type: 'SPEED_LIMIT' });
             }
-        }
-
-        function spawnPedestrians() {
-            const pedGeo = new THREE.BoxGeometry(1.2, 2.5, 1.2);
-            const pedMat = new THREE.MeshStandardMaterial({ color: 0xff7043 });
-            let ped = new THREE.Mesh(pedGeo, pedMat);
-            ped.position.set(-18, 1.25, 100);
-            scene.add(ped);
-            pedestrians.push({ mesh: ped, dir: 1, state: 'walking' });
         }
 
         function handleInput(e, isDown) {
-            const state = isDown ? 1 : 0;
-            if(e.key === 'w' || e.key === 'ArrowUp') keys.w = state;
-            if(e.key === 's' || e.key === 'ArrowDown') keys.s = state;
-            if(e.key === 'a' || e.key === 'ArrowLeft') keys.a = state;
-            if(e.key === 'd' || e.key === 'ArrowRight') keys.d = state;
-            
-            if(isDown && (e.key === 'q' || e.key === 'e')) {
-                playIndicatorClick();
-                document.getElementById('hud-signal').innerText = e.key.toUpperCase() + ' - BLINKING';
+            const val = isDown ? 1 : 0;
+            if (e.key === 'w' || e.key === 'ArrowUp') keys.w = val;
+            if (e.key === 's' || e.key === 'ArrowDown') keys.s = val;
+            if (e.key === 'a' || e.key === 'ArrowLeft') keys.a = val;
+            if (e.key === 'd' || e.key === 'ArrowRight') keys.d = val;
+
+            if (isDown) {
+                if (e.key === 'q') { 
+                    indicators.left = !indicators.left; indicators.right = false;
+                    playClick();
+                }
+                if (e.key === 'e') { 
+                    indicators.right = !indicators.right; indicators.left = false;
+                    playClick();
+                }
             }
         }
 
-        function playIndicatorClick() {
-            if(!audioCtx) return;
+        function playClick() {
+            if (!audioCtx) return;
             let osc = audioCtx.createOscillator();
             let gain = audioCtx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.06);
+            osc.frequency.setValueAtTime(700, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.05);
         }
 
-        function playHonkSound() {
-            if(!audioCtx) return;
+        function playHonk() {
+            if (!audioCtx) return;
             let osc = audioCtx.createOscillator();
             let gain = audioCtx.createGain();
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.4);
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.25);
         }
 
         function animateLoop() {
+            if (!gameRunning) return;
             requestAnimationFrame(animateLoop);
-
-            if (keys.w) speed += 0.5;
-            else if (keys.s) speed -= 0.8;
-            else speed *= 0.95;
-
-            speed = Math.max(-20, Math.min(speed, 140));
-
-            if (keys.a) { turnAngle += 0.02; steeringWheel.rotation.z = 1.2; }
-            else if (keys.d) { turnAngle -= 0.02; steeringWheel.rotation.z = -1.2; }
-            else { steeringWheel.rotation.z *= 0.8; }
-
-            playerCar.position.z -= Math.cos(turnAngle) * (speed * 0.01);
-            playerCar.position.x -= Math.sin(turnAngle) * (speed * 0.01);
-            playerCar.rotation.y = turnAngle;
-
-            camera.position.set(
-                playerCar.position.x + Math.sin(turnAngle) * 15,
-                playerCar.position.y + 7,
-                playerCar.position.z + Math.cos(turnAngle) * 15
-            );
-            camera.lookAt(playerCar.position.x, playerCar.position.y + 1.5, playerCar.position.z);
-
-            npcCars.forEach(npc => {
-                npc.position.z += 0.6;
-                if(npc.position.z > 800) npc.position.z = -800;
-
-                let dist = playerCar.position.distanceTo(npc.position);
-                if (dist < 15) {
-                    playHonkSound();
-                }
-            });
-
-            pedestrians.forEach(ped => {
-                if(ped.state === 'walking') {
-                    ped.mesh.position.x += 0.08 * ped.dir;
-                    if(Math.abs(ped.mesh.position.x) > 18) ped.dir *= -1;
-
-                    if(playerCar.position.distanceTo(ped.mesh.position) < 4) {
-                        ped.state = 'ragdoll';
-                        ped.mesh.rotation.z = Math.PI / 2;
-                        ped.mesh.position.y = 0.2;
-                    }
-                } else if(ped.state === 'ragdoll') {
-                    ped.mesh.position.z -= 0.8;
-                }
-            });
-
-            document.getElementById('hud-speed').innerText = Math.round(Math.abs(speed));
-            renderer.render(scene, camera);
+            updatePhysics();
+            drawGame();
         }
 
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        function updatePhysics() {
+            // Throttle handling
+            if (keys.w) player.speed += 0.2;
+            else if (keys.s) player.speed -= 0.4;
+            else player.speed *= 0.96;
+            player.speed = Math.max(-4, Math.min(player.speed, 18));
+
+            // Animated steering system
+            if (keys.a) player.steerAngle = Math.max(-0.6, player.steerAngle - 0.05);
+            else if (keys.d) player.steerAngle = Math.min(0.6, player.steerAngle + 0.05);
+            else player.steerAngle *= 0.8;
+
+            // Turn angle vector manipulation
+            if (Math.abs(player.speed) > 0.5) {
+                player.angle += player.steerAngle * (player.speed * 0.002);
+            }
+
+            // World relative movement calculations (pseudo 3D scroll movement)
+            let dy = Math.cos(player.angle) * player.speed;
+            let dx = Math.sin(player.angle) * player.speed;
+
+            // Process indicators blink sync loop
+            indicators.timer++;
+            if (indicators.left) document.getElementById('hud-signal').innerText = "LEFT BLINKING";
+            else if (indicators.right) document.getElementById('hud-signal').innerText = "RIGHT BLINKING";
+            else document.getElementById('hud-signal').innerText = "OFF";
+
+            // Update NPC Traffic Simulation loop
+            npcCars.forEach(npc => {
+                npc.y += npc.speed - dy;
+                npc.x -= dx;
+                if (npc.y > canvas.height + 200) npc.y = -800;
+
+                // Handle proximity safety honk algorithms
+                let pDist = Math.hypot((canvas.width/2) - npc.x, (canvas.height*0.7) - npc.y);
+                if (pDist < 140) {
+                    if (npc.honkCooldown <= 0) {
+                        playHonk();
+                        npc.honkCooldown = 90; // Honk spacing limiter
+                    }
+                }
+                if (npc.honkCooldown > 0) npc.honkCooldown--;
+            });
+
+            // Update Pedestrians + Ragdoll logic
+            pedestrians.forEach(ped => {
+                ped.x -= dx;
+                ped.y -= dy;
+
+                if (ped.state === 'walking') {
+                    ped.x += ped.speed * ped.dir;
+                    if (Math.abs(ped.x - canvas.width/2) > 250) ped.dir *= -1;
+
+                    // Compute crash proximity thresholds
+                    let distance = Math.hypot((canvas.width/2) - ped.x, (canvas.height*0.7) - ped.y);
+                    if (distance < player.length / 2 + 15) {
+                        ped.state = 'ragdoll';
+                    }
+                } else if (ped.state === 'ragdoll') {
+                    ped.fallAngle += 0.15; // Body rotation displacement loop
+                    ped.y -= 4; // Velocity knock-back effect
+                }
+                if (ped.y > canvas.height + 400) { ped.y = -800; ped.state = 'walking'; }
+            });
+
+            // Keep road elements scrolling smoothly relative to speed vector
+            roadSigns.forEach(sign => {
+                sign.y -= dy;
+                sign.x -= dx;
+                if (sign.y > canvas.height + 200) sign.y = -1000;
+            });
+
+            document.getElementById('hud-speed').innerText = Math.round(Math.abs(player.speed * 6));
+        }
+
+        function drawGame() {
+            // Draw background landscape grass environment layer
+            ctx.fillStyle = '#2e4a23';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            let centerX = canvas.width / 2;
+
+            // Draw Endless Perspective Asphalt Main Street Strip
+            ctx.fillStyle = '#292929';
+            ctx.fillRect(centerX - 100, 0, 200, canvas.height);
+
+            // Draw painted side borders
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(centerX - 105, 0, 5, canvas.height);
+            ctx.fillRect(centerX + 100, 0, 5, canvas.height);
+
+            // Draw scrolling highway center dash markers
+            ctx.strokeStyle = '#ffcc00';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([30, 30]);
+            ctx.beginPath();
+            ctx.moveTo(centerX, 0);
+            ctx.lineTo(centerX, canvas.height);
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset line context settings
+
+            // Draw Zebra Pedestrian Crossings lines
+            ctx.fillStyle = '#ffffff';
+            for(let i = -1000; i < canvas.height + 1000; i += 600) {
+                let offsetPos = i - (player.speed * 10); 
+                for(let lineX = -80; lineX <= 80; lineX += 30) {
+                    ctx.fillRect(centerX + lineX, offsetPos, 20, 40);
+                }
+            }
+
+            // Draw Environmental Road Signs and Obstacles
+            roadSigns.forEach(sign => {
+                ctx.fillStyle = '#8e8e8e';
+                ctx.fillRect(sign.x, sign.y, 4, 30); // Post structure outline
+                ctx.fillStyle = sign.type === 'STOP' ? '#d32f2f' : '#ffffff';
+                ctx.beginPath();
+                ctx.arc(sign.x + 2, sign.y, 12, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Render NPC Traffic models
+            npcCars.forEach(npc => {
+                ctx.fillStyle = npc.color;
+                ctx.fillRect(npc.x - npc.width/2, npc.y - npc.length/2, npc.width, npc.length);
+                // Glass windshield indicators
+                ctx.fillStyle = '#333333';
+                ctx.fillRect(npc.x - npc.width/2 + 4, npc.y - npc.length/4, npc.width - 8, 8);
+            });
+
+            // Render Pedestrian Models (Normal vs Ragdoll matrix)
+            pedestrians.forEach(ped => {
+                ctx.save();
+                ctx.translate(ped.x, ped.y);
+                if (ped.state === 'ragdoll') {
+                    ctx.rotate(ped.fallAngle);
+                    ctx.fillStyle = '#d32f2f'; // Hurt color change
+                } else {
+                    ctx.fillStyle = '#ffb300';
+                }
+                ctx.fillRect(-8, -16, 16, 32); // Torso structure mesh
+                ctx.fillStyle = '#ffcc80';
+                ctx.beginPath(); ctx.arc(0, -22, 7, 0, Math.PI * 2); ctx.fill(); // Head circle
+                ctx.restore();
+            });
+
+            // Draw Player Vehicle Cockpit view configuration matrices
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height * 0.7);
+            ctx.rotate(player.angle);
+
+            // Chassis shell boundary box geometry
+            ctx.fillStyle = player.color;
+            ctx.fillRect(-player.width / 2, -player.length / 2, player.width, player.length);
+
+            // Cockpit Windshield Graphic Layer
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.fillRect(-player.width / 2 + 4, -player.length / 4, player.width - 8, 12);
+
+            // Blinking Indicator Lights
+            if (indicators.left && Math.floor(indicators.timer / 15) % 2 === 0) {
+                ctx.fillStyle = '#ffaa00';
+                ctx.fillRect(-player.width/2 - 4, -player.length/2, 4, 8);
+            }
+            if (indicators.right && Math.floor(indicators.timer / 15) % 2 === 0) {
+                ctx.fillStyle = '#ffaa00';
+                ctx.fillRect(player.width/2, -player.length/2, 4, 8);
+            }
+
+            // Interior turning steering wheel system rendering hook
+            ctx.save();
+            ctx.translate(0, 5);
+            ctx.rotate(player.steerAngle);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(0, 0, 10, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.closePath();
+            ctx.restore();
+
+            ctx.restore();
         }
     </script>
 </body>
