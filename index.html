@@ -3,66 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D First-Person Driving Simulator</title>
+    <title>3D Open World Driving Simulator</title>
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #080810; color: white; user-select: none; }
-        
-        /* Vehicle Selection Menu */
+        body, html { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #0a0a0f; color: white; user-select: none; }
         #menu-view {
             position: absolute; width: 100vw; height: 100vh; z-index: 100;
-            background: linear-gradient(135deg, #0f0f26, #040408);
+            background: linear-gradient(135deg, #121225, #05050a);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        h1 { font-size: 2.2rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 40px; text-shadow: 0 0 10px rgba(0,210,255,0.3); }
         .menu-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; width: 85%; max-width: 900px; }
         .vehicle-btn {
-            background: #14142b; border: 2px solid #2a2a44; border-radius: 12px; height: 160px;
+            background: #181835; border: 2px solid #2d2d54; border-radius: 12px; height: 160px;
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;
             cursor: pointer; transition: all 0.2s ease; color: white; font-size: 1.1rem; font-weight: bold; text-transform: uppercase;
         }
-        .vehicle-btn:hover { transform: translateY(-5px); border-color: #00d2ff; background: #1c1c3d; }
-        
-        /* Game Screen Layout */
+        .vehicle-btn:hover { transform: translateY(-5px); border-color: #00d2ff; background: #22224d; }
         #game-view { display: none; position: relative; width: 100vw; height: 100vh; }
         canvas { width: 100%; height: 100%; display: block; }
         
-        /* Dashboard UI Cluster Overlay */
+        /* Dashboard UI HUD */
         #dashboard-ui {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 26vh;
-            background: linear-gradient(to top, #06060a 85%, #181826 100%);
-            border-top: 5px solid #252538; display: flex; align-items: center; justify-content: space-between;
+            background: linear-gradient(to top, #050508 85%, #151522 100%);
+            border-top: 5px solid #2d2d40; display: flex; align-items: center; justify-content: space-between;
             padding: 0 50px; box-sizing: border-box; z-index: 50;
         }
-        .hud-panel { background: rgba(5,5,10,0.7); border: 2px solid #00d2ff; padding: 12px 25px; border-radius: 8px; font-family: monospace; font-size: 1.1rem; min-width: 160px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        #controls-hint { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.75); padding: 10px 15px; border-radius: 6px; font-size: 0.9rem; color: #aaa; z-index: 50; border: 1px solid #252538; }
+        .hud-panel { background: rgba(5,5,10,0.8); border: 2px solid #00d2ff; padding: 12px 25px; border-radius: 8px; font-family: monospace; font-size: 1.1rem; min-width: 160px; }
+        
+        /* Functional Rear-View Mirror Overlay */
+        #rear-view-mirror {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            width: 260px; height: 65px; background: #111; border: 4px solid #333;
+            border-radius: 4px; overflow: hidden; box-shadow: 0 8px 16px rgba(0,0,0,0.6);
+        }
     </style>
 </head>
 <body>
 
-    <!-- SELECTION MENU -->
+    <!-- VEHICLE SELECTION MENU -->
     <div id="menu-view">
-        <h1>Select Your Vehicle Model</h1>
+        <h1 style="text-transform: uppercase; letter-spacing: 2px; margin-bottom: 30px;">Select Simulation Model</h1>
         <div class="menu-container">
-            <button class="vehicle-btn" onclick="launchGame('car')">🚗 Sedan Car</button>
-            <button class="vehicle-btn" onclick="launchGame('lorry')">🚛 Heavy Lorry</button>
-            <button class="vehicle-btn" onclick="launchGame('motorcycle')">🏍️ Motorcycle</button>
-            <button class="vehicle-btn" onclick="launchGame('bus')">🚌 Transit Bus</button>
+            <button class="vehicle-btn" onclick="launchSimulation('car')">🚗 Sedan Car</button>
+            <button class="vehicle-btn" onclick="launchSimulation('lorry')">0 Heavy Lorry</button>
+            <button class="vehicle-btn" onclick="soundBeep(); launchSimulation('motorcycle')">🏍️ Motorcycle</button>
+            <button class="vehicle-btn" onclick="launchSimulation('bus')">🚌 Transit Bus</button>
         </div>
     </div>
 
-    <!-- MAIN GAME SCREEN -->
+    <!-- MAIN GAME SIMULATION -->
     <div id="game-view">
-        <div id="controls-hint">W/S: Accelerate/Brake & Reverse | A/D: Smooth Steer Wheels</div>
+        <!-- Rear view mirror assembly -->
+        <div id="rear-view-mirror"><canvas id="mirrorCanvas" style="width:100%; height:100%;"></canvas></div>
+        
         <canvas id="renderCanvas"></canvas>
         
-        <!-- DASHBOARD HUD -->
         <div id="dashboard-ui">
             <div class="hud-panel">
-                GEAR MODEL: <span id="hud-model">-</span><br>
-                STATUS: <span style="color: #39ff14;">DRIVING</span>
+                MODEL: <span id="hud-model">-</span><br>
+                RADIO: <span style="color: #9c27b0;">RADIO WAVE FM</span>
             </div>
             <div class="hud-panel" style="font-size: 1.5rem; text-align: center; border-color: #ff0055;">
-                <span id="hud-speed">0</span><br><span style="font-size: 0.75rem; color: #666;">KM/H</span>
+                <span id="hud-speed">0</span><br><span style="font-size: 0.75rem; color: #555;">KM/H</span>
             </div>
         </div>
     </div>
@@ -70,217 +72,232 @@
     <script>
         const canvas = document.getElementById('renderCanvas');
         const ctx = canvas.getContext('2d');
+        const mirrorCanvas = document.getElementById('mirrorCanvas');
+        const mCtx = mirrorCanvas.getContext('2d');
         
         let keys = { w:0, a:0, s:0, d:0 };
         let activeModel = '';
-        let loopInterval;
+        let loop;
 
-        // --- PHYSICAL VEHICLE CONFIGURATION MATRIX ---
+        // --- SEPARATE KINEMATIC VEHICLE PROPERTIES ---
         let car = {
-            x: 0, y: 1500,          // Position coordinates on map
+            x: 2000, y: 2000,     // Spawns dead centre on a massive grid
             speed: 0,
-            angle: 0,              // Vehicle heading rotation angle
-            wheelAngle: 0,         // Axle steering direction wheel angle
-            maxWheelAngle: 0.38,   // Reduced maximum turning threshold to limit sensitivity
-            wheelbase: 4.8,        // Distance between axles
+            angle: 0,             // Direction body is pointing
+            wheelAngle: 0,        // Direction front tires are pointing
+            maxWheelAngle: 0.35,  // Real-world steering lock
+            wheelbase: 4.5,
             width: 2.4,
             height: 1.5,
             color: '#00d2ff',
-            seatX: -0.55           // Lock POV camera to the realistic left-hand side seat position
+            seatX: -0.6,          // Places camera on the realistic left-hand driver seat
+            eyeHeight: 1.1        // Raised eye height so you are never under the map!
         };
 
-        // --- OPEN WORLD ENVIRONMENTS MAP (A LOT BIGGER) ---
-        let citySkyscrapers = [];
-        let highwayTraffic = [];
+        // --- A LOT BIGGER MAP CONFIGURATION (4000x4000 World Space Grid) ---
+        let mapSize = 4000;
+        let roads = [
+            // Vertical main strip lanes
+            { x: 1900, y: 0, w: 200, h: 4000 },
+            // Horizontal crossroads forming sharp turn intersections and corners
+            { x: 0, y: 1900, w: 4000, h: 200 },
+            // Loop tracks forming twisting layouts
+            { x: 800, y: 800, w: 2400, h: 100 },
+            { x: 800, y: 800, w: 100, h: 2400 }
+        ];
 
-        function resizeGameWindow() {
+        let buildings = [];
+        let traffic = [];
+
+        function resizeWorld() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            mirrorCanvas.width = 260;
+            mirrorCanvas.height = 65;
         }
 
-        window.launchGame = function(type) {
+        window.launchSimulation = function(type) {
             document.getElementById('menu-view').style.display = 'none';
             document.getElementById('game-view').style.display = 'block';
             document.getElementById('hud-model').innerText = type.toUpperCase();
             
             activeModel = type;
-            // Scale chassis properties based on selected model
-            if (type === 'lorry') { car.wheelbase = 11.5; car.width = 3.0; car.height = 3.8; car.color = '#ff007f'; }
-            if (type === 'bus') { car.wheelbase = 13.5; car.width = 2.9; car.height = 3.4; car.color = '#ffaa00'; }
-            if (type === 'motorcycle') { car.wheelbase = 2.2; car.width = 0.8; car.height = 1.1; car.color = '#39ff14'; car.seatX = 0; }
+            if (type === 'lorry') { car.wheelbase = 11.0; car.width = 3.0; car.height = 3.8; car.color = '#ff007f'; car.eyeHeight = 2.8; }
+            if (type === 'bus') { car.wheelbase = 13.0; car.width = 2.9; car.height = 3.4; car.color = '#ffaa00'; car.eyeHeight = 2.4; }
+            if (type === 'motorcycle') { car.wheelbase = 2.2; car.width = 0.8; car.height = 1.1; car.color = '#39ff14'; car.seatX = 0; car.eyeHeight = 0.9; }
 
-            resizeGameWindow();
-            window.addEventListener('keydown', (e) => handleDrivingKeys(e, true));
-            window.addEventListener('keyup', (e) => handleDrivingKeys(e, false));
-            window.addEventListener('resize', resizeGameWindow);
+            resizeWorld();
+            window.addEventListener('keydown', (e) => handleInput(e, true));
+            window.addEventListener('keyup', (e) => handleInput(e, false));
+            window.addEventListener('resize', resizeWorld);
 
-            // A LOT BIGGER MAP: Populates a massive city grid map spanning 4,000 meters wide
-            for (let x = -2000; x <= 2000; x += 300) {
-                for (let y = 0; y <= 4000; y += 300) {
-                    if (Math.abs(x) < 40) continue; // Clears area for main multi-lane highway avenues
-                    
-                    let randomizedHeight = 40 + Math.random() * 110;
-                    citySkyscrapers.push({ x: x, y: y, z: 0, w: 40, l: 40, h: randomizedHeight });
-                }
+            // Populate massive grid map with block skyscraper volumes
+            for (let i = 0; i < 150; i++) {
+                buildings.push({
+                    x: Math.random() * mapSize,
+                    y: Math.random() * mapSize,
+                    w: 40 + Math.random() * 60,
+                    h: 40 + Math.random() * 60,
+                    alt: 50 + Math.random() * 150
+                });
             }
 
-            // Spawn separate traffic vehicles running matching dimensions
-            for(let i = 0; i < 6; i++) {
-                highwayTraffic.push({ x: 10, y: 300 + (i * 350), speed: 3.5, color: '#556677' });
+            // Spawn traffic patterns running parallel
+            for (let i = 0; i < 8; i++) {
+                traffic.push({ x: 1950 + (i%2 * 40), y: Math.random() * mapSize, speed: 3 + Math.random()*2, color: '#55667a' });
             }
 
-            loopInterval = setInterval(simulationEngineTick, 1000 / 60);
+            loop = setInterval(gameTickUpdate, 1000 / 60);
         };
 
-        function handleDrivingKeys(e, isPressed) {
-            let state = isPressed ? 1 : 0;
-            if (e.key === 'w' || e.key === 'ArrowUp') keys.w = state;
-            if (e.key === 's' || e.key === 'ArrowDown') keys.s = state;
-            if (e.key === 'a' || e.key === 'ArrowLeft') keys.a = state;
-            if (e.key === 'd' || e.key === 'ArrowRight') keys.d = state;
+        function handleInput(e, isDown) {
+            let val = isDown ? 1 : 0;
+            if (e.key === 'w' || e.key === 'ArrowUp') keys.w = val;
+            if (e.key === 's' || e.key === 'ArrowDown') keys.s = val;
+            if (e.key === 'a' || e.key === 'ArrowLeft') keys.a = val;
+            if (e.key === 'd' || e.key === 'ArrowRight') keys.d = val;
         }
 
-        function simulationEngineTick() {
-            // 1. --- ACKERMANN STEERING FRONT WHEEL TURNING PHYSICS ---
-            // Scaled turn increments back significantly to fix high sensitivity
-            if (keys.a) car.wheelAngle = Math.max(-car.maxWheelAngle, car.wheelAngle - 0.012);
-            else if (keys.d) car.wheelAngle = Math.min(car.maxWheelAngle, car.wheelAngle + 0.012);
-            else car.wheelAngle *= 0.8; // Front wheels spring back straight smoothly on release
+        function gameTickUpdate() {
+            // 1. --- REAL LIFE FRONT-WHEEL STEERING PHYSICS (Ackermann Axle Tracking) ---
+            if (keys.a) car.wheelAngle = Math.max(-car.maxWheelAngle, car.wheelAngle - 0.015);
+            else if (keys.d) car.wheelAngle = Math.min(car.maxWheelAngle, car.wheelAngle + 0.015);
+            else car.wheelAngle *= 0.8; // Tires physically track straight when letting go
 
-            if (keys.w) car.speed += 0.22;
+            if (keys.w) car.speed += 0.25;
             else if (keys.s) car.speed -= 0.5;
             else car.speed *= 0.96;
-            car.speed = Math.max(-6, Math.min(car.speed, 120));
+            car.speed = Math.max(-8, Math.min(car.speed, 130));
 
-            // Track individual front and rear axles paths independently 
+            // Move front and rear axles completely independently to calculate real turning arcs
             let fx = car.x + (car.wheelbase / 2) * Math.sin(car.angle);
             let fy = car.y - (car.wheelbase / 2) * Math.cos(car.angle);
             let rx = car.x - (car.wheelbase / 2) * Math.sin(car.angle);
             let ry = car.y + (car.wheelbase / 2) * Math.cos(car.angle);
 
-            // Turn vectors
-            rx += car.speed * 0.035 * Math.sin(car.angle);
-            ry -= car.speed * 0.035 * Math.cos(car.angle);
+            rx += car.speed * 0.04 * Math.sin(car.angle);
+            ry -= car.speed * 0.04 * Math.cos(car.angle);
 
-            fx += car.speed * 0.035 * Math.sin(car.angle + car.wheelAngle);
-            fy -= car.speed * 0.035 * Math.cos(car.angle + car.wheelAngle);
+            fx += car.speed * 0.04 * Math.sin(car.angle + car.wheelAngle);
+            fy -= car.speed * 0.04 * Math.cos(car.angle + car.wheelAngle);
 
-            // Re-map car position and heading angles from separated tires trajectories
+            // Re-calculate body heading drift vectors
             car.x = (fx + rx) / 2;
             car.y = (fy + ry) / 2;
             car.angle = Math.atan2(fx - rx, ry - fy);
 
-            // Run computer traffic loops
-            highwayTraffic.forEach(npc => {
-                npc.y += npc.speed * 0.35;
-                if (npc.y > car.y + 700) npc.y = car.y - 700;
+            // Update traffic nodes loops
+            traffic.forEach(npc => {
+                npc.y -= npc.speed * 0.5;
+                if (npc.y < 0) npc.y = mapSize;
             });
 
-            // 2. --- UNBLOCKABLE HARDWARE-ACCELERATED 3D PROJECTION SYSTEM ---
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 2. --- RENDERING FIRST-PERSON VIEW FROM THE CHARACTER'S EYES ---
+            renderSceneView(ctx, canvas, car.angle, false);
             
-            let horizonY = canvas.height * 0.38;
-            let cx = canvas.width / 2;
-            let cameraFov = 450; // Visual zoom factor
+            // 3. --- RENDERING REAL-TIME REAR MIRROR VIEW (Angles camera 180 degrees backward) ---
+            renderSceneView(mCtx, mirrorCanvas, car.angle + Math.PI, true);
 
-            ctx.fillStyle = '#2c4222'; // Grass ground level field
-            ctx.fillRect(0, horizonY, canvas.width, canvas.height - horizonY);
-            ctx.fillStyle = '#7ec1eb'; // Blue daylight sky plane
-            ctx.fillRect(0, 0, canvas.width, horizonY);
+            document.getElementById('hud-speed').innerText = Math.round(Math.abs(car.speed));
+        }
 
-            // --- FIRST PERSON MATRICES: CAMERA FIXED IN DRIVER'S EYE SOCKETS ---
-            function projectToFirstPerson3D(worldX, worldY, worldZ) {
-                // Displaces viewpoint directly onto left-side cabin seating parameters
-                let eyeOffsetX = Math.sin(car.angle) * car.seatX;
-                let eyeOffsetY = Math.cos(car.angle) * car.seatX;
+        function renderSceneView(renderContext, targetCanvas, viewAngle, isMirrorView) {
+            renderContext.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+            
+            let horizonY = targetCanvas.height * (isMirrorView ? 0.5 : 0.4);
+            let cx = targetCanvas.width / 2;
+            let fov = isMirrorView ? 200 : 450;
+
+            // Draw Sky & Ground planes
+            renderContext.fillStyle = '#223519'; // Grass terrain
+            renderContext.fillRect(0, horizonY, targetCanvas.width, targetCanvas.height - horizonY);
+            renderContext.fillStyle = isMirrorView ? '#5fa6d1' : '#7ec2eb'; // Sky layer
+            renderContext.fillRect(0, 0, targetCanvas.width, horizonY);
+
+            // --- 3D FIRST PERSON EYE COORDINATE PROJECTION FORMULA ---
+            function project3D(worldX, worldY, worldZ) {
+                // Places camera exactly where the driver's eyes are sitting on the left seat
+                let headOffsetX = Math.sin(car.angle) * car.seatX;
+                let headOffsetY = Math.cos(car.angle) * car.seatX;
                 
-                let relX = worldX - (car.x + eyeOffsetX);
-                let relY = worldY - (car.y + eyeOffsetY);
+                let relX = worldX - (car.x + headOffsetX);
+                let relY = worldY - (car.y + headOffsetY);
 
-                // Rotate surrounding world layout around your eye vector direction angles
-                let rotX = relX * Math.cos(-car.angle) - relY * Math.sin(-car.angle);
-                let rotY = relX * Math.sin(-car.angle) + relY * Math.cos(-car.angle);
+                // Rotate surrounding world geometry directly around driver's orientation angle
+                let rotX = relX * Math.cos(-viewAngle) - relY * Math.sin(-viewAngle);
+                let rotY = relX * Math.sin(-viewAngle) + relY * Math.cos(-viewAngle);
 
-                if (rotY >= -0.3) return null; // Behind camera clipping loop
+                if (rotY >= -0.5) return null; // Clip geometry behind camera path
 
-                let scale = cameraFov / -rotY;
-                
-                // FIX: Added "+ car.height * 0.75" factor to ground calculations. 
-                // This guarantees camera height stays perfectly at low seat eye level and never slips under the map floor!
+                let scale = fov / -rotY;
                 return {
                     x: cx + rotX * scale,
-                    y: horizonY + (worldZ - car.height * 0.75) * scale, 
+                    y: horizonY + (worldZ - car.eyeHeight) * scale, // Locks view securely above map ground level
                     sz: scale
                 };
             }
 
-            // Draw Highway Asphalt Strip
-            ctx.fillStyle = '#202022';
-            ctx.beginPath();
-            let lf = projectToFirstPerson3D(-25, car.y - 1500, 0);
-            let rf = projectToFirstPerson3D(25, car.y - 1500, 0);
-            let rn = projectToFirstPerson3D(25, car.y + 50, 0);
-            let ln = projectToFirstPerson3D(-25, car.y + 50, 0);
+            // Draw Real 3D Grid Roads network (Twists, turns, junctions)
+            renderContext.fillStyle = '#25252a';
+            roads.forEach(r => {
+                // Only render street paths close to the vehicle position coordinates
+                if (Math.hypot(car.x - r.x, car.y - r.y) > 1500) return;
 
-            if (lf && rf && rn && ln) {
-                ctx.moveTo(lf.x, lf.y); ctx.lineTo(rf.x, rf.y); ctx.lineTo(rn.x, rn.y); ctx.lineTo(ln.x, ln.y);
-                ctx.fill();
-            }
+                let lf = project3D(r.x, r.y, 0);
+                let rf = project3D(r.x + r.w, r.y, 0);
+                let rn = project3D(r.x + r.w, r.y + r.h, 0);
+                let ln = project3D(r.x, r.y + r.h, 0);
 
-            // Draw Painted Yellow Road Markings
-            ctx.fillStyle = '#ffaa00';
-            for (let lineY = Math.floor(car.y - 1200); lineY < car.y + 200; lineY += 90) {
-                let centerDash = projectToFirstPerson3D(0, lineY, 0);
-                if (centerDash) ctx.fillRect(centerDash.x - centerDash.sz * 0.1, centerDash.y, centerDash.sz * 0.25, centerDash.sz * 6);
-            }
-
-            // Draw Massive Open Landscape City Skyscraper Blocks
-            citySkyscrapers.forEach(b => {
-                if (Math.abs(b.y - car.y) > 1500) return; // Cull distant structures for execution efficiency
-
-                let bBase = projectToFirstPerson3D(b.x, b.y, 0);
-                if (bBase) {
-                    let w = b.w * bBase.sz;
-                    let h = b.h * bBase.sz;
-                    
-                    ctx.fillStyle = '#546e7a'; // Solid block structural shade
-                    ctx.fillRect(bBase.x - w/2, bBase.y - h, w, h);
-                    ctx.strokeStyle = '#37474f';
-                    ctx.strokeRect(bBase.x - w/2, bBase.y - h, w, h);
+                if (lf && rf && rn && ln) {
+                    renderContext.beginPath();
+                    renderContext.moveTo(lf.x, lf.y); renderContext.lineTo(rf.x, rf.y);
+                    renderContext.lineTo(rn.x, rn.y); renderContext.lineTo(ln.x, ln.y);
+                    renderContext.fill();
                 }
             });
 
-            // Draw Traffic Obstacles matching matching player size properties
-            highwayTraffic.forEach(npc => {
-                let p = projectToFirstPerson3D(npc.x, npc.y, 0);
+            // Draw 3D Solid Skyscraper blocks sorted in space
+            buildings.forEach(b => {
+                if (Math.hypot(car.x - b.x, car.y - b.y) > 1200) return;
+
+                let bBase = project3D(b.x, b.y, 0);
+                if (bBase) {
+                    let w = b.w * bBase.sz;
+                    let h = b.alt * bBase.sz;
+                    
+                    renderContext.fillStyle = '#546e7a';
+                    renderContext.fillRect(bBase.x - w/2, bBase.y - h, w, h);
+                    renderContext.strokeStyle = '#37474f';
+                    renderContext.strokeRect(bBase.x - w/2, bBase.y - h, w, h);
+                }
+            });
+
+            // Draw 3D Traffic Obstacles
+            traffic.forEach(npc => {
+                let p = project3D(npc.x, npc.y, 0);
                 if (p) {
                     let w = car.width * p.sz;
                     let h = car.height * p.sz;
-                    ctx.fillStyle = npc.color;
-                    ctx.fillRect(p.x - w / 2, p.y - h, w, h);
-                    
-                    ctx.fillStyle = 'rgba(255,255,255,0.25)'; // Glass cabin windscreen
-                    ctx.fillRect(p.x - w / 2 + 4, p.y - h + 2, w - 8, h * 0.22);
+                    renderContext.fillStyle = npc.color;
+                    renderContext.fillRect(p.x - w/2, p.y - h, w, h);
                 }
             });
 
-            // Render Separate Left-Hand Interior Turning Steering Wheel 
-            if (activeModel !== 'motorcycle') {
-                ctx.save();
-                ctx.translate(cx - 220, canvas.height * 0.66); // Locks console steering assembly straight onto left driver column axis
-                ctx.rotate(car.wheelAngle * 2.6);              // Steering ring rotates visibly further than tyres!
+            // 4. --- DRAW SEPARATE INTERACTIVE COCKPIT WHEEL (Only in main view) ---
+            if (!isMirrorView && activeModel !== 'motorcycle') {
+                renderContext.save();
+                renderContext.translate(cx - 220, targetCanvas.height * 0.66); // Shifts wheel to left cockpit seat path
+                renderContext.rotate(car.wheelAngle * 2.5);                   // Spins assembly on steering controls
                 
-                ctx.lineWidth = 18;
-                ctx.strokeStyle = '#1d1d24';
-                ctx.beginPath(); ctx.arc(0, 0, 90, 0, Math.PI * 2); ctx.stroke();
+                renderContext.lineWidth = 18;
+                renderContext.strokeStyle = '#1d1d26';
+                renderContext.beginPath(); renderContext.arc(0, 0, 90, 0, Math.PI * 2); renderContext.stroke();
                 
-                ctx.fillStyle = '#15151c';
-                ctx.fillRect(-80, -6, 160, 12);
-                ctx.fillRect(-6, 0, 12, 80);
-                ctx.restore();
+                renderContext.fillStyle = '#111116';
+                renderContext.fillRect(-80, -6, 160, 12);
+                renderContext.fillRect(-6, 0, 12, 80);
+                renderContext.restore();
             }
-
-            document.getElementById('hud-speed').innerText = Math.round(Math.abs(car.speed));
         }
     </script>
 </body>
