@@ -3,71 +3,322 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Realistic Open-World Driving Simulator</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Next-Gen First-Person 3D Driving Simulator</title>
+    <style>
+        body, html { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #050508; user-select: none; }
+        
+        /* Main Selection Menu */
+        #menu-view {
+            position: absolute; width: 100%; height: 100%; z-index: 100;
+            background: linear-gradient(135deg, #0f0f1a, #050508);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;
+        }
+        h1 { font-size: 2.2rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 40px; text-shadow: 0 0 10px rgba(0,210,255,0.3); }
+        .menu-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; width: 85%; max-width: 1000px; }
+        .vehicle-btn {
+            background: #141424; border: 2px solid #2a2a40; border-radius: 16px; height: 200px;
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+            padding: 20px; cursor: pointer; transition: all 0.3s ease;
+        }
+        .vehicle-btn:hover { transform: translateY(-8px); border-color: #00d2ff; background: #1c1c34; box-shadow: 0 5px 15px rgba(0,210,255,0.2); }
+        .vehicle-svg { width: 70%; height: auto; max-height: 80px; }
+        .vehicle-text { font-size: 1.1rem; font-weight: bold; text-transform: uppercase; color: white; border-top: 1px solid rgba(255,255,255,0.1); width: 100%; text-align: center; padding-top: 10px; }
+        
+        /* 3D Simulation Engine Viewport */
+        #viewport-3d {
+            display: none; width: 100vw; height: 100vh; position: relative;
+            background: linear-gradient(to bottom, #7fc2eb 0%, #a5d6f7 40%, #1a1a1a 40%, #0d0d0d 100%);
+            perspective: 450px; overflow: hidden;
+        }
+
+        /* 3D World Space Engine */
+        #scene-3d {
+            position: absolute; width: 3000px; height: 3000px;
+            left: 50%; top: 40%; margin-left: -1500px; margin-top: -1500px;
+            transform-style: preserve-3d;
+            transform: rotateX(84deg) translateY(-200px) translateZ(-85px); /* Lowers eye-height directly to dashboard seat level */
+        }
+
+        /* 3D Structural Mesh Definitions */
+        .mesh-3d { position: absolute; transform-style: preserve-3d; }
+        
+        /* Procedural Road Netting (Asphalt Roads & Curves) */
+        .road-piece { background: #222225; box-shadow: inset 0 0 30px rgba(0,0,0,0.6); }
+        .paint-line { background: #ffffff; position: absolute; }
+        .turn-curb { background: #ff4444; position: absolute; box-shadow: 0 4px #fff; }
+
+        /* 3D Primitive Solid Blocks (Buildings, Car Chassis, Dashboard, Chairs) */
+        .face { position: absolute; background-size: cover; border: 1px solid rgba(0,0,0,0.15); box-sizing: border-box; }
+        
+        /* HUD Speed Readout Cluster */
+        #hud-cluster {
+            position: absolute; bottom: 25px; left: 25px; background: rgba(10,10,15,0.9);
+            border: 2px solid #00d2ff; padding: 10px 20px; border-radius: 8px; color: #fff;
+            font-family: monospace; font-size: 1.1rem; font-weight: bold; z-index: 100;
+        }
+        #radio-screen {
+            position: absolute; bottom: 25px; right: 25px; background: #08080c;
+            border: 2px solid #9c27b0; padding: 10px 20px; border-radius: 8px; color: #d666ef;
+            font-family: monospace; font-size: 0.9rem; text-align: center; z-index: 100;
+        }
+    </style>
 </head>
 <body>
 
-    <!-- VEHICLE CLASS SELECTION INTERFACE -->
-    <div id="menu-view" class="menu-view">
-        <h1>Select Real Simulation Model</h1>
+    <!-- VEHICLE SELECTION -->
+    <div id="menu-view">
+        <h1>Select Real 3D Physical Simulation Model</h1>
         <div class="menu-container">
-            <button class="vehicle-btn" onclick="selectVehicle('Car')">
+            <button class="vehicle-btn" onclick="boot3D('Car', '#00d2ff', 45, 80, 28)">
                 <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="1.5"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
-                <div class="vehicle-text">Sedan Car</div>
+                <div class="vehicle-text">Car (Sedan)</div>
             </button>
-            <button class="vehicle-btn" onclick="selectVehicle('Lorry')">
+            <button class="vehicle-btn" onclick="boot3D('Lorry', '#ff007f', 55, 150, 60)">
                 <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#ff007f" stroke-width="1.5"><path d="M14 18H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h11v13zM14 9h4l3 3v5a1 1 0 0 1-1 1h-6V9z"/><circle cx="5.5" cy="18" r="1.5"/><circle cx="11.5" cy="18" r="1.5"/><circle cx="17.5" cy="18" r="1.5"/></svg>
-                <div class="vehicle-text">Commercial Lorry</div>
+                <div class="vehicle-text">Heavy Lorry</div>
             </button>
-            <button class="vehicle-btn" onclick="selectVehicle('Motorcycle')">
+            <button class="vehicle-btn" onclick="boot3D('Motorcycle', '#39ff14', 16, 45, 22)">
                 <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#39ff14" stroke-width="1.5"><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M5 18l3-5h6l3 5M8 13l2-5h4l1 3"/></svg>
                 <div class="vehicle-text">Motorcycle</div>
             </button>
-            <button class="vehicle-btn" onclick="selectVehicle('Bus')">
+            <button class="vehicle-btn" onclick="boot3D('Bus', '#ffaa00', 55, 170, 55)">
                 <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#ffaa00" stroke-width="1.5"><path d="M4 18h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2zM2 14h20M2 10h20M6 4v6M12 4v6M18 4v6"/><circle cx="6" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg>
-                <div class="vehicle-text">Transit Bus</div>
+                <div class="vehicle-text">City Bus</div>
             </button>
         </div>
     </div>
 
-    <!-- ACTION VIEWPORT WORLD GENERATOR -->
-    <div id="game-viewport">
-        
-        <!-- Interactive Reflection Mirrors -->
-        <div id="center-mirror" class="rear-mirror"><div id="reflect-center" class="mirror-reflection"></div></div>
-        <div id="left-mirror" class="rear-mirror"><div id="reflect-left" class="mirror-reflection"></div></div>
-        
-        <button id="exit-car-btn" onclick="exitVehicleToggle()">Leave Vehicle</button>
-        <div id="foot-view"></div>
+    <!-- 3D OPEN WORLD MATRIX VIEWPORT -->
+    <div id="viewport-3d">
+        <div id="scene-3d">
+            <!-- Ground Level Plain Grid -->
+            <div id="grass-field" style="position: absolute; width: 4000px; height: 4000px; left: -500px; top: -500px; background: #253a1e;"></div>
+            
+            <!-- Real Map Nodes (Road System with Complex Twists and Corners) -->
+            <div id="map-network" class="mesh-3d"></div>
 
-        <!-- 3D Transform Render Layer -->
-        <div id="world-container">
-            <div id="world-3d-scene" style="transform-style: preserve-3d;"></div>
+            <!-- Active 3D Simulated Traffic Elements -->
+            <div id="traffic-network" class="mesh-3d"></div>
+
+            <!-- PLAYER VEHICLE ASSEMBLY (Physical Chasis, Seat, Controls, Steering Wheel, Mirrors) -->
+            <div id="player-chassis" class="mesh-3d"></div>
         </div>
 
-        <!-- FIRST-PERSON INTEGRATED COCKPIT ASSEMBLY FRAME -->
-        <div id="cockpit-frame">
-            <div id="steering-assembly">
-                <div id="physical-wheel"></div>
-            </div>
-
-            <!-- Integrated Dashboard telemetry metrics panel -->
-            <div id="dashboard-panel">
-                <div class="cluster-gauge">MODEL: <span id="gauge-type">-</span></div>
-                <div class="cluster-gauge">SPEED: <span id="gauge-speed">0</span> KM/H</div>
-                
-                <!-- Interactive Radio console -->
-                <div id="car-radio">
-                    <div>📻 MEDIA PLAYER</div>
-                    <div id="radio-display" style="font-weight:bold; margin-top:5px;">OFF</div>
-                    <div style="font-size:0.65rem; color:#888; margin-top:3px;">Press 'R' to Tune</div>
-                </div>
-            </div>
+        <!-- INSTRUMENT OVERLAYS -->
+        <div id="hud-cluster">
+            MODEL: <span id="hud-model">-</span><br>
+            SPEED: <span id="hud-speed">0</span> KM/H
+        </div>
+        <div id="radio-screen">
+            📻 RADIO MEDIA PLAYER<br>
+            <span id="radio-track">98.5 WAVE FM</span><br>
+            <span style="font-size: 0.65rem; color: #888;">Press 'R' to switch channels</span>
         </div>
     </div>
 
-    <!-- Load Logic Module dependencies -->
-    <script src="game.js"></script>
+    <script>
+        let audioCtx;
+        let keys = { w:0, a:0, s:0, d:0 };
+        
+        // Physical Car Kinematic Variables
+        let phys = { x: 1500, y: 2500, z: 0, speed: 0, angle: 0, steerAngle: 0, width: 45, length: 80, height: 28, color: '' };
+        
+        // Track Structural Framework Arrays (Main straightaways, 90-degree curve junctions, side blocks)
+        let mapRoads = [
+            { x: 1380, y: 500, w: 240, h: 2500, type: 'highway' },  // Vertical strip
+            { x: 500, y: 1500, w: 2000, h: 240, type: 'crossroad' }, // Horizon strip (Creates intersections and corners)
+            { x: 500, y: 500, w: 240, h: 1000, type: 'sub-street' }  // Secondary alternate loop corner
+        ];
+
+        let trafficVehicles = [];
+        let engineLoop;
+
+        // Factory Utility for generating real 3D Primitives (Cubes/Boxes)
+        function build3DBox(width, length, height, x, y, z, baseColor, id = '') {
+            let container = document.createElement('div');
+            container.className = 'mesh-3d';
+            if (id) container.id = id;
+            container.style.transform = `translate3d(${x}px, ${y}px, ${z}px)`;
+
+            let w2 = width / 2, l2 = length / 2;
+
+            // 6 Faces to construct a fully solid spatial block shape
+            let faces = [
+                { s: `width:${width}px; height:${height}px; transform: rotateX(-90deg) translateZ(${l2}px);`, c: baseColor }, // Front
+                { s: `width:${width}px; height:${height}px; transform: rotateX(90deg) translateZ(${l2}px);`, c: darkenColor(baseColor, 15) }, // Back
+                { s: `width:${length}px; height:${height}px; transform: rotateY(-90deg) translateZ(${w2}px) rotateY(180deg);`, c: darkenColor(baseColor, 10) }, // Left
+                { s: `width:${length}px; height:${height}px; transform: rotateY(90deg) translateZ(${w2}px);`, c: darkenColor(baseColor, 10) }, // Right
+                { s: `width:${width}px; height:${length}px; transform: translateZ(${height}px);`, c: brightenColor(baseColor, 15) }, // Top
+                { s: `width:${width}px; height:${length}px; transform: translateZ(0px);`, c: '#111' } // Bottom
+            ];
+
+            faces.forEach((f, i) => {
+                let div = document.createElement('div');
+                div.className = 'face';
+                div.style.cssText = f.s + ` background-color: ${f.c}; position: absolute; left: calc(50% - ${i >= 2 && i <= 3 ? length/2 : width/2}px); top: calc(50% - ${i >= 4 ? length/2 : height/2}px);`;
+                container.appendChild(div);
+            });
+
+            return container;
+        }
+
+        function darkenColor(hex, pct) { return adjustHexBrightness(hex, -pct); }
+        function brightenColor(hex, pct) { return adjustHexBrightness(hex, pct); }
+        function adjustHexBrightness(hex, pct) {
+            let num = parseInt(hex.replace("#",""), 16),
+            amt = Math.round(2.55 * pct), R = (num >> 16) + amt, G = (num >> 8 & 0x00FF) + amt, B = (num & 0x0000FF) + amt;
+            return "#" + (0x1000000 + (R<255?R<0?0:R:255)*0x10000 + (G<255?G<0?0:G:255)*0x100 + (B<255?B<0?0:B:255)).toString(16).slice(1);
+        }
+
+        window.boot3D = function(model, color, w, l, h) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            document.getElementById('menu-view').style.display = 'none';
+            document.getElementById('viewport-3d').style.display = 'block';
+            document.getElementById('hud-model').innerText = model.toUpperCase();
+
+            phys.color = color; phys.width = w; phys.length = l; phys.height = h;
+
+            generateEnvironmentNodes();
+            assemblePlayerPhysicalVehicle();
+
+            window.addEventListener('keydown', (e) => handleControls(e, true));
+            window.addEventListener('keyup', (e) => handleControls(e, false));
+
+            engineLoop = setInterval(physicsTick, 20);
+        };
+
+        function generateEnvironmentNodes() {
+            let mapNode = document.getElementById('map-network');
+
+            // Render Road Strips network
+            mapRoads.forEach(r => {
+                let road = document.createElement('div');
+                road.className = 'mesh-3d road-piece';
+                road.style.cssText = `left:${r.x}px; top:${r.y}px; width:${r.w}px; height:${r.h}px; position:absolute;`;
+                mapNode.appendChild(road);
+            });
+
+            // Spawn AI Traffic units matching the identical physical 3D properties of player specification models
+            let trafficNode = document.getElementById('traffic-network');
+            for(let i = 0; i < 4; i++) {
+                let npcY = 600 + (i * 500);
+                let npcBox = build3DBox(phys.width, phys.length, phys.height, 1420, npcY, 0, '#555566', `npc-${i}`);
+                trafficNode.appendChild(npcBox);
+                trafficVehicles.push({ x: 1420, y: npcY, speed: 4, element: npcBox, honkDelay: 0 });
+            }
+        }
+
+        function assemblePlayerPhysicalVehicle() {
+            let chassis = document.getElementById('player-chassis');
+            chassis.innerHTML = '';
+
+            // 1. Structural Outer Car Body Mesh
+            let bodyShell = build3DBox(phys.width, phys.length, phys.height, 0, 0, 0, phys.color);
+            chassis.appendChild(bodyShell);
+
+            // 2. Physical Interior Driving Chair (Seat)
+            let seatX = -phys.width * 0.22; // Offset directly to left side context
+            let driverSeat = build3DBox(14, 14, 20, seatX, -4, 4, '#15151e');
+            chassis.appendChild(driverSeat);
+
+            // 3. Physical Steering Column & Dashboard Cluster Solid Block
+            let dashBlock = build3DBox(phys.width - 4, 8, 12, 0, phys.length * 0.3, phys.height * 0.7, '#111115');
+            chassis.appendChild(dashBlock);
+
+            // 4. Physical Steering Wheel Ring Mesh
+            let wheelGroup = document.createElement('div');
+            wheelGroup.className = 'mesh-3d';
+            wheelGroup.id = 'wheel-rig';
+            wheelGroup.style.cssText = `width:16px; height:16px; background:#222; border-radius:50%; position:absolute; transform: translate3d(${seatX}px, ${phys.length * 0.32}px, ${phys.height * 0.85}px) rotateX(-45deg); border: 4px solid #0a0a0f;`;
+            chassis.appendChild(wheelGroup);
+
+            // 5. Physical Driver Model Box (Sits perfectly inside the seat geometry)
+            let driverBody = build3DBox(10, 10, 18, seatX, -4, 14, '#ffb300');
+            chassis.appendChild(driverBody);
+        }
+
+        function handleControls(e, isPressed) {
+            const state = isPressed ? 1 : 0;
+            if (e.key === 'w' || e.key === 'ArrowUp') keys.w = state;
+            if (e.key === 's' || e.key === 'ArrowDown') keys.s = state;
+            if (e.key === 'a' || e.key === 'ArrowLeft') keys.a = state;
+            if (e.key === 'd' || e.key === 'ArrowRight') keys.d = state;
+
+            if (isPressed && e.key === 'r') {
+                triggerBeepTone(400, 0.05);
+            }
+        }
+
+        function triggerBeepTone(freq, length) {
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + length);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + length);
+        }
+
+        function triggerTrafficHonk() {
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(430, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+        }
+
+        function physicsTick() {
+            // Apply Accelerations & Friction Forces Vector Rules
+            if (keys.w) phys.speed += 0.35;
+            else if (keys.s) phys.speed -= 0.65;
+            else phys.speed *= 0.95;
+            phys.speed = Math.max(-5, Math.min(phys.speed, 115));
+
+            // Physical Angular Turning Steering mechanics
+            if (keys.a) { phys.angle += 0.02 * (phys.speed / 45); phys.steerAngle = Math.max(-75, phys.steerAngle - 6); }
+            else if (keys.d) { phys.angle -= 0.02 * (phys.speed / 45); phys.steerAngle = Math.min(75, phys.steerAngle + 6); }
+            else { phys.steerAngle *= 0.75; }
+
+            // Spatial Translation vector transformations
+            phys.y -= Math.cos(phys.angle) * (phys.speed * 0.15);
+            phys.x -= Math.sin(phys.angle) * (phys.speed * 0.15);
+
+            // Synchronize rotation Matrix on local physical steering wheel assembly
+            let wRig = document.getElementById('wheel-rig');
+            if (wRig) wRig.style.transform = `translate3d(${-phys.width * 0.22}px, ${phys.length * 0.32}px, ${phys.height * 0.85}px) rotateX(-45deg) rotateZ(${phys.steerAngle}deg)`;
+
+            // Update local structural position matrix for player car chassis mesh bounds
+            let chassisNode = document.getElementById('player-chassis');
+            chassisNode.style.transform = `translate3d(${phys.x}px, ${phys.y}px, 0px) rotateZ(${-phys.angle}rad)`;
+
+            // Deep First-Person low-height perspective tracking driver seat camera values
+            // Aligns focus point from the left seat frame position over hood geometry
+            let headOffsetX = Math.sin(phys.angle) * (phys.width * 0.22);
+            let headOffsetY = Math.cos(phys.angle) * (phys.width * 0.22);
+            
+            document.getElementById('scene-3d').style.transform = `rotateX(84deg) rotateZ(${phys.angle}rad) translateX(${-phys.x + headOffsetX}px) translateY(${-phys.y + headOffsetY}px) translateZ(${-80 - phys.height * 0.7}px)`;
+
+            // Simulate and render parallel active traffic nodes
+            trafficVehicles.forEach(car => {
+                car.y += car.speed;
+                if (car.y > 3000) car.y = 500;
+
+                car.element.style.transform = `translate3d(${car.x}px, ${car.y}px, 0px)`;
+
+                // Compute standard vector clearance checking for traffic AI proximity honking
+                let dist = Math.hypot(phys.x - car.x, phys.y - car.y);
+                if (dist < 150) {
+                    if (car.honkDelay <= 0) {
+                        triggerTrafficHonk();
+                        car.honkDelay = 90;
+                    }
+                }
+                if (car.honkDelay > 0) car.honkDelay--;
+            });
+
+            document.getElementById('hud-speed').innerText = Math.round(Math.abs(phys.speed));
+        }
+    </script>
 </body>
 </html>
