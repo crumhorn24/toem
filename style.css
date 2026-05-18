@@ -1,0 +1,233 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #05050a;
+    user-select: none;
+}
+
+/* UI Menu Styles */
+.menu-view {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    background: linear-gradient(135deg, #111119, #07070a);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+h1 {
+    font-size: 2.5rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 40px;
+    color: #00d2ff;
+    text-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+}
+
+.menu-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px;
+    width: 85%;
+    max-width: 1100px;
+}
+
+.vehicle-btn {
+    background: #161626;
+    border: 2px solid #2d2d44;
+    border-radius: 16px;
+    height: 240px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.vehicle-btn:hover {
+    transform: translateY(-10px);
+    border-color: #00d2ff;
+    background: #1f1f38;
+    box-shadow: 0 10px 25px rgba(0, 210, 255, 0.25);
+}
+
+.vehicle-svg {
+    width: 75%;
+    height: auto;
+    max-height: 100px;
+}
+
+.vehicle-text {
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: white;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    width: 100%;
+    text-align: center;
+    padding-top: 12px;
+}
+
+/* Simulation Viewport Screen Layer */
+#game-viewport {
+    display: none;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    perspective: 700px;
+    overflow: hidden;
+}
+
+#world-container {
+    position: absolute;
+    width: 4000px;
+    height: 4000px;
+    left: 50%;
+    top: 50%;
+    margin-left: -2000px;
+    margin-top: -2000px;
+    transform-style: preserve-3d;
+    transform: rotateX(72deg) translateZ(-180px);
+}
+
+/* Real First-Person Left-Hand Cockpit & Dash Elements */
+#cockpit-frame {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 40vh;
+    background: linear-gradient(to top, #0f0f14 60%, #20202b 100%);
+    border-top: 6px solid #1a1a24;
+    z-index: 10;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    padding-left: 10%; /* Forces steering assembly to the realistic left-side */
+    box-sizing: border-box;
+    box-shadow: inset 0 20px 30px rgba(0,0,0,0.8);
+}
+
+#steering-assembly {
+    width: 240px;
+    height: 240px;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+#physical-wheel {
+    width: 100%;
+    height: 100%;
+    border: 22px solid #1c1c24;
+    border-radius: 50%;
+    box-sizing: border-box;
+    position: absolute;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.9), 0 8px 16px rgba(0,0,0,0.6);
+}
+
+#physical-wheel::before {
+    content: ''; position: absolute; width: 100%; height: 20px; background: #1c1c24; top: 50%; margin-top: -10px;
+}
+#physical-wheel::after {
+    content: ''; position: absolute; width: 20px; height: 50%; background: #1c1c24; left: 50%; margin-left: -10px; bottom: 0;
+}
+
+/* Dashboard Functional Clusters */
+#dashboard-panel {
+    position: absolute;
+    left: 400px;
+    bottom: 40px;
+    display: flex;
+    gap: 30px;
+    align-items: center;
+}
+
+.cluster-gauge {
+    background: rgba(10,10,15,0.85);
+    border: 2px solid #00d2ff;
+    border-radius: 10px;
+    padding: 12px 20px;
+    color: #fff;
+    font-family: monospace;
+    font-size: 1.1rem;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+
+/* Interactive Center-Console Media Radio Display */
+#car-radio {
+    background: #09090f;
+    border: 2px solid #9c27b0;
+    border-radius: 8px;
+    padding: 10px 15px;
+    color: #df78ef;
+    font-family: monospace;
+    font-size: 0.9rem;
+    text-shadow: 0 0 5px #9c27b0;
+    width: 180px;
+    text-align: center;
+}
+
+/* Functional Interactive Rear-View Mirrors */
+.rear-mirror {
+    position: absolute;
+    top: 30px;
+    width: 220px;
+    height: 70px;
+    background: #111;
+    border: 4px solid #333;
+    border-radius: 6px;
+    overflow: hidden;
+    z-index: 20;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+}
+
+#center-mirror { left: 50%; margin-left: -110px; border-radius: 0 0 12px 12px; }
+#left-mirror { left: 20px; transform: skewY(5deg); }
+
+.mirror-reflection {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, #4a75a0 0%, #608cb5 40%, #1c3512 40%, #15240d 100%);
+    position: relative;
+}
+
+#exit-car-btn {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    background: #e91e63;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 50;
+    text-transform: uppercase;
+    box-shadow: 0 5px 15px rgba(233,30,99,0.3);
+}
+
+/* 3D Map Structures */
+.road-segment { position: absolute; background: #222; }
+.building-3d { position: absolute; background: #3f51b5; border: 2px solid #283593; transform: rotateX(-90deg); transform-origin: bottom; box-shadow: 0 0 30px rgba(0,0,0,0.6); }
+.pedestrian-3d { position: absolute; width: 16px; height: 40px; background: #ff5722; border-radius: 4px; transform: rotateX(-90deg); }
+.traffic-npc { position: absolute; background: #f44336; border-radius: 6px; }
+
+/* Foot-Travel Character Perspective Screen Layer */
+#foot-view {
+    display: none;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.8) 100%);
+    z-index: 5;
+    pointer-events: none;
+}
