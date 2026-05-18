@@ -3,227 +3,347 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Driving Game Menu</title>
+    <title>3D City Driving Simulation</title>
     <style>
-        /* Base styling */
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            min-height: 100vh;
-        }
-
-        /* Menu View Style (Dark Mode) */
-        .menu-view {
+        body, html { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #111119; }
+        
+        /* Selection Menu Styling */
+        #menu-view {
+            position: absolute; width: 100%; height: 100%; z-index: 10;
             background: linear-gradient(135deg, #1e1e2f, #111119);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            color: #ffffff;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;
         }
-
-        h1 {
-            margin-bottom: 40px;
-            font-size: 2.5rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
-        }
-
-        .menu-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 25px;
-            width: 90%;
-            max-width: 1100px;
-            padding: 20px;
-        }
-
+        h1 { font-size: 2.5rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 40px; }
+        .menu-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; width: 85%; max-width: 1000px; }
         .vehicle-btn {
-            background: #2a2a40;
-            border: 2px solid #3f3f5f;
-            border-radius: 16px;
-            height: 300px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
-            padding: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            background: #2a2a40; border: 2px solid #3f3f5f; border-radius: 16px; height: 250px;
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+            padding: 20px; cursor: pointer; transition: all 0.3s ease;
         }
-
-        .vehicle-btn:hover {
-            transform: translateY(-10px);
-            background: #343452;
-            border-color: #00d2ff;
-            box-shadow: 0 12px 24px rgba(0, 210, 255, 0.2);
+        .vehicle-btn:hover { transform: translateY(-8px); border-color: #00d2ff; background: #343452; }
+        .vehicle-svg { width: 70%; height: auto; max-height: 100px; }
+        .vehicle-text { font-size: 1.2rem; font-weight: bold; text-transform: uppercase; color: white; border-top: 1px solid rgba(255,255,255,0.1); width: 100%; text-align: center; padding-top: 10px; }
+        
+        /* 3D Gameplay Elements */
+        #canvas-container { width: 100%; height: 100vh; display: none; }
+        #hud {
+            position: absolute; top: 20px; left: 20px; color: white; font-weight: bold;
+            background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; display: none; pointer-events: none;
         }
-
-        .image-wrapper {
-            flex-grow: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-        }
-
-        .vehicle-svg {
-            width: 80%;
-            height: auto;
-            max-height: 120px;
-        }
-
-        .vehicle-text {
-            font-size: 1.3rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #ffffff;
-            margin-top: 15px;
-            width: 100%;
-            text-align: center;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding-top: 15px;
-        }
-
-        /* Game Screen View Style (Blank White Mode) */
-        .game-view {
-            display: none; /* Hidden by default */
-            background: #ffffff;
-            color: #111119;
-            min-height: 100vh;
-            position: relative; /* Needed to lock button to bottom left */
-            flex-direction: column;
-            align-items: center;
-            padding-top: 40px;
-            box-sizing: border-box;
-        }
-
-        #game-title {
-            font-size: 3rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin: 0;
-        }
-
-        /* Red Back Button Style at Bottom Left */
-        .back-btn {
-            position: absolute;
-            bottom: 30px;
-            left: 30px;
-            background-color: #ff3333;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 1rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            border-radius: 8px;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(255, 51, 51, 0.3);
-            transition: all 0.2s ease;
-        }
-
-        .back-btn:hover {
-            background-color: #cc0000;
-            transform: scale(1.05);
-            box-shadow: 0 6px 12px rgba(255, 51, 51, 0.5);
-        }
+        #controls-hint { position: absolute; bottom: 20px; right: 20px; color: #aaa; font-size: 0.9rem; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; display: none; }
     </style>
+    
+    <!-- ES Modules Shims & Core Libraries via CDN -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com",
+          "three/addons/": "https://unpkg.com"
+        }
+      }
+    </script>
 </head>
 <body>
 
-    <!-- SECTION 1: THE MENU VIEW -->
-    <div id="menu-view" class="menu-view">
+    <!-- VEHICLE SELECTION MENU -->
+    <div id="menu-view">
         <h1>Select Your Vehicle</h1>
-
         <div class="menu-container">
-            <!-- CAR BUTTON -->
-            <button class="vehicle-btn" onclick="startGame('Car')">
-                <div class="image-wrapper">
-                    <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
-                        <circle cx="7" cy="17" r="2" fill="#1e1e2f" />
-                        <circle cx="17" cy="17" r="2" fill="#1e1e2f" />
-                        <path d="M7 17h10" />
-                    </svg>
-                </div>
+            <button class="vehicle-btn" onclick="initGame('Car')">
+                <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="1.5"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
                 <div class="vehicle-text">Car</div>
             </button>
-
-            <!-- LORRY BUTTON -->
-            <button class="vehicle-btn" onclick="startGame('Lorry')">
-                <div class="image-wrapper">
-                    <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#ff007f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 18H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h11v13z" />
-                        <path d="M14 9h4l3 3v5a1 1 0 0 1-1 1h-6V9z" />
-                        <circle cx="5.5" cy="18" r="1.5" fill="#1e1e2f" />
-                        <circle cx="11.5" cy="18" r="1.5" fill="#1e1e2f" />
-                        <circle cx="17.5" cy="18" r="1.5" fill="#1e1e2f" />
-                    </svg>
-                </div>
+            <button class="vehicle-btn" onclick="initGame('Lorry')">
+                <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#ff007f" stroke-width="1.5"><path d="M14 18H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h11v13zM14 9h4l3 3v5a1 1 0 0 1-1 1h-6V9z"/><circle cx="5.5" cy="18" r="1.5"/><circle cx="11.5" cy="18" r="1.5"/><circle cx="17.5" cy="18" r="1.5"/></svg>
                 <div class="vehicle-text">Lorry</div>
             </button>
-
-            <!-- MOTORCYCLE BUTTON -->
-            <button class="vehicle-btn" onclick="startGame('Motorcycle')">
-                <div class="image-wrapper">
-                    <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#39ff14" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="5" cy="18" r="2.5" />
-                        <circle cx="19" cy="18" r="2.5" />
-                        <path d="M5 18l3-5h6l3 5" />
-                        <path d="M8 13l2-5h4l1 3" />
-                        <path d="M14 8h-3" />
-                    </svg>
-                </div>
+            <button class="vehicle-btn" onclick="initGame('Motorcycle')">
+                <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#39ff14" stroke-width="1.5"><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M5 18l3-5h6l3 5M8 13l2-5h4l1 3"/></svg>
                 <div class="vehicle-text">Motorcycle</div>
             </button>
-
-            <!-- BUS BUTTON -->
-            <button class="vehicle-btn" onclick="startGame('Bus')">
-                <div class="image-wrapper">
-                    <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#ffaa00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 18h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z" />
-                        <path d="M2 14h20" />
-                        <path d="M2 10h20" />
-                        <path d="M6 4v6" />
-                        <path d="M12 4v6" />
-                        <path d="M18 4v6" />
-                        <circle cx="6" cy="18" r="1.5" fill="#1e1e2f" />
-                        <circle cx="18" cy="18" r="1.5" fill="#1e1e2f" />
-                    </svg>
-                </div>
+            <button class="vehicle-btn" onclick="initGame('Bus')">
+                <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#ffaa00" stroke-width="1.5"><path d="M4 18h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2zM2 14h20M2 10h20M6 4v6M12 4v6M18 4v6"/><circle cx="6" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg>
                 <div class="vehicle-text">Bus</div>
             </button>
         </div>
     </div>
 
-    <!-- SECTION 2: THE BLANK WHITE GAME VIEW -->
-    <div id="game-view" class="game-view">
-        <h1 id="game-title">Vehicle Name Here</h1>
-        
-        <!-- RED BACK BUTTON -->
-        <button class="back-btn" onclick="showMenu()">Back to Menu</button>
-    </div>
+    <!-- 3D GRAPHICS CONTAINER -->
+    <div id="canvas-container"></div>
 
-    <script>
-        // Shows the white game view and hides the menu
-        function startGame(vehicleType) {
-            document.getElementById('menu-view').style.display = 'none';
-            document.getElementById('game-title').innerText = vehicleType;
-            document.getElementById('game-view').style.display = 'flex';
+    <!-- GAMEPLAY INTERFACE -->
+    <div id="hud">
+        Vehicle: <span id="hud-type">-</span><br>
+        Speed: <span id="hud-speed">0</span> KM/H<br>
+        Indicator: <span id="hud-signal">OFF</span>
+    </div>
+    <div id="controls-hint">Use WASD or Arrows to drive. Q/E for Indicators. Space to brake.</div>
+
+    <!-- GAME ENGINE LOGIC -->
+    <script type="module">
+        import * as THREE from 'three';
+
+        let scene, camera, renderer, playerCar, steeringWheel;
+        let keys = { w:0, a:0, s:0, d:0, q:0, e:0 };
+        let speed = 0, turnAngle = 0;
+        let npcCars = [], pedestrians = [];
+        let audioCtx, indicatorSound;
+
+        // Initialize Audio API for simulated indicator clicking sounds
+        function initAudio() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        // Hides the game view and brings back the menu
-        function showMenu() {
-            document.getElementById('game-view').style.display = 'none';
-            document.getElementById('menu-view').style.display = 'flex';
+        window.initGame = function(selectedType) {
+            initAudio();
+            document.getElementById('menu-view').style.display = 'none';
+            document.getElementById('canvas-container').style.display = 'block';
+            document.getElementById('hud').style.display = 'block';
+            document.getElementById('controls-hint').style.display = 'block';
+            document.getElementById('hud-type').innerText = selectedType;
+
+            setup3DWorld(selectedType);
+        };
+
+        function setup3DWorld(type) {
+            // Setup base scene and smooth lighting
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xaaccff);
+            scene.fog = new THREE.FogExp2(0xaaccff, 0.015);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            sunLight.position.set(50, 100, 50);
+            sunLight.castShadow = true;
+            scene.add(sunLight);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+
+            // Generate Map Infrastructure (Streets, Buildings, Terrain)
+            createCityLayout();
+
+            // Create Chosen Vehicle + Cockpit Elements
+            createPlayerVehicle(type);
+
+            // Populate Town with Active Simulation Elements
+            spawnTraffic();
+            spawnPedestrians();
+
+            // Event Hooks
+            window.addEventListener('keydown', (e) => handleInput(e, true));
+            window.addEventListener('keyup', (e) => handleInput(e, false));
+            window.addEventListener('resize', onWindowResize);
+
+            animateLoop();
+        }
+
+        function createCityLayout() {
+            // Endless ground map
+            const floorGeo = new THREE.PlaneGeometry(2000, 2000);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x557a46 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Asphalt Grid Roads
+            const roadMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            const mainStreet = new THREE.Mesh(new THREE.PlaneGeometry(30, 1000), roadMat);
+            mainStreet.rotation.x = -Math.PI / 2;
+            mainStreet.position.y = 0.01;
+            mainStreet.receiveShadow = true;
+            scene.add(mainStreet);
+
+            // Generate low-poly houses/buildings along the road layout
+            const buildGeo = new THREE.BoxGeometry(20, 40, 20);
+            const buildMat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d });
+            for(let i = -500; i < 500; i += 80) {
+                if (Math.abs(i) < 40) continue;
+                let b1 = new THREE.Mesh(buildGeo, buildMat);
+                b1.position.set(-35, 20, i);
+                b1.castShadow = true;
+                scene.add(b1);
+
+                let b2 = new THREE.Mesh(buildGeo, buildMat);
+                b2.position.set(35, 20, i);
+                b2.castShadow = true;
+                scene.add(b2);
+            }
+
+            // Zebra Crossing Lines
+            const crossMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            for(let step = -12; step <= 12; step += 4) {
+                let stripe = new THREE.Mesh(new THREE.PlaneGeometry(2, 8), crossMat);
+                stripe.rotation.x = -Math.PI / 2;
+                stripe.position.set(step, 0.02, 100);
+                scene.add(stripe);
+            }
+        }
+
+        function createPlayerVehicle(type) {
+            playerCar = new THREE.Group();
+
+            // Set size parameters based on vehicle classification selection
+            let w = 2.5, h = 1.8, l = 5, color = 0x00d2ff;
+            if(type === 'Lorry') { h = 4; l = 12; color = 0xff007f; }
+            if(type === 'Bus') { h = 3.5; l = 14; color = 0xffaa00; }
+            if(type === 'Motorcycle') { w = 0.8; h = 1.2; l = 2.2; color = 0x39ff14; }
+
+            // Vehicle Body Core
+            const bodyGeo = new THREE.BoxGeometry(w, h, l);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: color });
+            const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+            bodyMesh.position.y = h/2 + 0.3;
+            bodyMesh.castShadow = true;
+            playerCar.add(bodyMesh);
+
+            // Functional Interior Dash Steering Wheel
+            const wheelGeo = new THREE.TorusGeometry(0.3, 0.05, 8, 24);
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            steeringWheel = new THREE.Mesh(wheelGeo, wheelMat);
+            steeringWheel.position.set(w * 0.25, h * 0.7, l * 0.1);
+            playerCar.add(steeringWheel);
+
+            playerCar.position.set(0, 0, 0);
+            scene.add(playerCar);
+        }
+
+        function spawnTraffic() {
+            // Generate distinct procedural computer-controlled vehicles
+            const npcMat = new THREE.MeshStandardMaterial({ color: 0x95a5a6 });
+            const npcGeo = new THREE.BoxGeometry(2.4, 1.7, 4.8);
+            for(let i = 0; i < 5; i++) {
+                let npc = new THREE.Mesh(npcGeo, npcMat);
+                npc.position.set(6, 1, -100 - (i * 70));
+                scene.add(npc);
+                npcCars.push(npc);
+            }
+        }
+
+        function spawnPedestrians() {
+            // Walkers traversing crosswalk junctions
+            const pedGeo = new THREE.BoxGeometry(1, 2, 1);
+            const pedMat = new THREE.MeshStandardMaterial({ color: 0xd35400 });
+            let ped = new THREE.Mesh(pedGeo, pedMat);
+            ped.position.set(-15, 1, 100);
+            scene.add(ped);
+            pedestrians.push({ mesh: ped, dir: 1, state: 'walking' });
+        }
+
+        function handleInput(e, isDown) {
+            const state = isDown ? 1 : 0;
+            if(e.key === 'w' || e.key === 'ArrowUp') keys.w = state;
+            if(e.key === 's' || e.key === 'ArrowDown') keys.s = state;
+            if(e.key === 'a' || e.key === 'ArrowLeft') keys.a = state;
+            if(e.key === 'd' || e.key === 'ArrowRight') keys.d = state;
+            
+            // Indicator Toggle Actions Triggering Synthetic Sound Engine Click
+            if(isDown && (e.key === 'q' || e.key === 'e')) {
+                playIndicatorClick();
+                document.getElementById('hud-signal').innerText = e.key.toUpperCase() + ' - BLINKING';
+            }
+        }
+
+        function playIndicatorClick() {
+            if(!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.06);
+        }
+
+        function playHonkSound() {
+            if(!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+        }
+
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+
+            // Drive System Math Acceleration Physics
+            if (keys.w) speed += 0.4;
+            else if (keys.s) speed -= 0.6;
+            else speed *= 0.96; // Drag friction resistance
+
+            speed = Math.max(-15, Math.min(speed, 120)); // Threshold limits
+
+            // Turn Handling 
+            if (keys.a) { turnAngle += 0.008 * (speed/40); steeringWheel.rotation.z = 1.2; }
+            else if (keys.d) { turnAngle -= 0.008 * (speed/40); steeringWheel.rotation.z = -1.2; }
+            else { steeringWheel.rotation.z *= 0.8; }
+
+            // Apply Vector Calculations to Movement Engine
+            playerCar.position.z -= Math.cos(turnAngle) * (speed * 0.01);
+            playerCar.position.x -= Math.sin(turnAngle) * (speed * 0.01);
+            playerCar.rotation.y = turnAngle;
+
+            // Smooth chase-camera logic tracking structural position behind vehicle cockpit
+            camera.position.set(
+                playerCar.position.x + Math.sin(turnAngle) * 12,
+                playerCar.position.y + 6,
+                playerCar.position.z + Math.cos(turnAngle) * 12
+            );
+            camera.lookAt(playerCar.position.x, playerCar.position.y + 2, playerCar.position.z);
+
+            // AI Traffic Logic loops
+            npcCars.forEach(npc => {
+                npc.position.z += 0.4; // AI movement speed
+                if(npc.position.z > 500) npc.position.z = -500;
+
+                // Simple Raycast proximity calculation for cutting off / safe proximity checking
+                let dist = playerCar.position.distanceTo(npc.position);
+                if (dist < 12) {
+                    playHonkSound(); // Trigger proximity honking audio alert
+                }
+            });
+
+            // Simulated Collision/Ragdoll response for Walkers
+            pedestrians.forEach(ped => {
+                if(ped.state === 'walking') {
+                    ped.mesh.position.x += 0.05 * ped.dir;
+                    if(Math.abs(ped.mesh.position.x) > 15) ped.dir *= -1;
+
+                    // Physical body structure tracking intersection points
+                    if(playerCar.position.distanceTo(ped.mesh.position) < 3.5) {
+                        ped.state = 'ragdoll';
+                        // Collapse matrix scaling to simulate high velocity impact displacement physics
+                        ped.mesh.rotation.z = Math.PI / 2;
+                        ped.mesh.position.y = 0.2;
+                    }
+                } else if(ped.state === 'ragdoll') {
+                    // Send pedestrian tumbling backward away from chassis trajectory
+                    ped.mesh.position.z -= 0.5;
+                }
+            });
+
+            document.getElementById('hud-speed').innerText = Math.round(Math.abs(speed));
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         }
     </script>
-
 </body>
 </html>
