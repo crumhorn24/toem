@@ -3,88 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- iPhone 12 App Activation Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://flaticon.com">
-    
-    <title>iPhone Remote Hub</title>
+    <title>Driving Game Menu</title>
     <style>
+        /* Dark, clean gaming background */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #0b0f19;
-            color: #ffffff;
-            text-align: center;
-            padding: 40px 20px;
             margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1e1e2f, #111119);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            min-height: 80vh;
+            justify-content: center;
+            min-height: 100vh;
+            color: #ffffff;
         }
-        .app-card {
-            background: linear-gradient(145deg, #161b26, #0f1420);
-            padding: 35px 25px;
-            border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.7), inset 0 1px 1px rgba(255,255,255,0.1);
-            max-width: 320px;
-            width: 100%;
-            border: 1px solid #1f293d;
+
+        h1 {
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
         }
-        
-        /* This creates a built-in graphic icon using code */
-        .icon-container {
-            width: 80px;
-            height: 80px;
-            background: radial-gradient(circle, #2563eb, #1d4ed8);
-            border-radius: 50%;
-            margin: 0 auto 20px auto;
+
+        /* Container for the 4 vehicle cards */
+        .menu-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+            width: 90%;
+            max-width: 1100px;
+            padding: 20px;
+        }
+
+        /* Smoothed-edge rectangle button layout */
+        .vehicle-btn {
+            background: #2a2a40;
+            border: 2px solid #3f3f5f;
+            border-radius: 16px; /* Smooth edges */
+            height: 300px;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            box-shadow: 0 0 20px rgba(37,99,235,0.4);
-        }
-        
-        h1 { font-size: 22px; margin: 0 0 8px 0; color: #f3f4f6; font-weight: 600; }
-        p { font-size: 14px; color: #9ca3af; margin: 0 0 30px 0; line-height: 1.4; }
-        
-        /* A realistic mobile control switch built with code */
-        .action-btn {
-            background: linear-gradient(180deg, #10b981, #059669);
-            color: white;
-            border: none;
-            width: 100%;
-            padding: 16px;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 14px;
+            justify-content: space-between; /* Pushes text to the very bottom */
+            padding: 20px;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(16,185,129,0.3);
-            transition: transform 0.1s ease;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            text-decoration: none;
         }
-        .action-btn:active { 
-            transform: scale(0.97);
-            background: #059669; 
+
+        /* Hover effects */
+        .vehicle-btn:hover {
+            transform: translateY(-10px);
+            background: #343452;
+            border-color: #00d2ff;
+            box-shadow: 0 12px 24px rgba(0, 210, 255, 0.2);
+        }
+
+        /* Wrapper to keep images centered vertically in the top space */
+        .image-wrapper {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* Clean, logo-free vehicle illustrations */
+        .vehicle-img {
+            max-width: 100%;
+            max-height: 140px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        /* Text styling at the very bottom */
+        .vehicle-text {
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ffffff;
+            margin-top: 15px;
+            width: 100%;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 15px;
         }
     </style>
 </head>
 <body>
 
-    <div class="app-card">
-        <!-- The visual icon graphic generated directly by the web browser -->
-        <div class="icon-container">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-                <line x1="12" y1="18" x2="12.01" y2="18"></line>
-            </svg>
-        </div>
+    <h1>Select Your Vehicle</h1>
 
-        <h1>iPhone 12 Hub Active</h1>
-        <p>Your hosted server file is online. Tap below to send the activation trigger.</p>
-        
-        <button class="action-btn" onclick="alert('Signal Transmitted to iPhone Link!')">Activate Signal</button>
+    <div class="menu-container">
+
+        <!-- CAR BUTTON -->
+        <button class="vehicle-btn" onclick="startGame('car')">
+            <div class="image-wrapper">
+                <img class="vehicle-img" src="https://unsplash.com" alt="Standard Sedan">
+            </div>
+            <div class="vehicle-text">Car</div>
+        </button>
+
+        <!-- LORRY BUTTON -->
+        <button class="vehicle-btn" onclick="startGame('lorry')">
+            <div class="image-wrapper">
+                <img class="vehicle-img" src="https://unsplash.com" alt="Standard Lorry with Trailer">
+            </div>
+            <div class="vehicle-text">Lorry</div>
+        </button>
+
+        <!-- MOTORCYCLE BUTTON -->
+        <button class="vehicle-btn" onclick="startGame('motorcycle')">
+            <div class="image-wrapper">
+                <img class="vehicle-img" src="https://unsplash.com" alt="Motorcycle">
+            </div>
+            <div class="vehicle-text">Motorcycle</div>
+        </button>
+
+        <!-- BUS BUTTON -->
+        <button class="vehicle-btn" onclick="startGame('bus')">
+            <div class="image-wrapper">
+                <img class="vehicle-img" src="https://unsplash.com" alt="Bus">
+            </div>
+            <div class="vehicle-text">Bus</div>
+        </button>
+
     </div>
+
+    <script>
+        function startGame(vehicleType) {
+            alert("Starting game with the " + vehicleType + "!");
+        }
+    </script>
 
 </body>
 </html>
