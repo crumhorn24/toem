@@ -6,8 +6,6 @@
     <title>3D City Driving Simulation</title>
     <style>
         body, html { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #111119; }
-        
-        /* Selection Menu Styling */
         #menu-view {
             position: absolute; width: 100%; height: 100%; z-index: 10;
             background: linear-gradient(135deg, #1e1e2f, #111119);
@@ -23,8 +21,6 @@
         .vehicle-btn:hover { transform: translateY(-8px); border-color: #00d2ff; background: #343452; }
         .vehicle-svg { width: 70%; height: auto; max-height: 100px; }
         .vehicle-text { font-size: 1.2rem; font-weight: bold; text-transform: uppercase; color: white; border-top: 1px solid rgba(255,255,255,0.1); width: 100%; text-align: center; padding-top: 10px; }
-        
-        /* 3D Gameplay Elements */
         #canvas-container { width: 100%; height: 100vh; display: none; }
         #hud {
             position: absolute; top: 20px; left: 20px; color: white; font-weight: bold;
@@ -33,7 +29,7 @@
         #controls-hint { position: absolute; bottom: 20px; right: 20px; color: #aaa; font-size: 0.9rem; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; display: none; }
     </style>
     
-    <!-- References your local, unblockable 3D engine file -->
+    <!-- This links directly to the local three.js file you uploaded -->
     <script src="three.js"></script>
 </head>
 <body>
@@ -61,10 +57,8 @@
         </div>
     </div>
 
-    <!-- 3D GRAPHICS CONTAINER -->
     <div id="canvas-container"></div>
 
-    <!-- GAMEPLAY HUD INTERFACE -->
     <div id="hud">
         Vehicle: <span id="hud-type">-</span><br>
         Speed: <span id="hud-speed">0</span> KM/H<br>
@@ -72,7 +66,6 @@
     </div>
     <div id="controls-hint">W/S: Accelerate/Brake | A/D: Turn Steering Wheel | Q/E: Indicators</div>
 
-    <!-- 3D GAME GRAPHICS CORE LOGIC -->
     <script>
         let scene, camera, renderer, playerCar, steeringWheel;
         let keys = { w:0, a:0, s:0, d:0 };
@@ -97,122 +90,81 @@
 
         function setup3DWorld(type) {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87ceeb); // Light blue sky
-            scene.fog = new THREE.FogExp2(0x87ceeb, 0.01);
+            scene.background = new THREE.Color(0x87ceeb);
 
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
             
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            // FIX: This automatically checks whether to use the old style or the brand new v184 style renderer
+            if (typeof THREE.WebGLRenderer !== 'undefined') {
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+            } else {
+                renderer = new THREE.WebGPURenderer({ antialias: true });
+            }
+            
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-            // Lighting systems
             const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
             sunLight.position.set(40, 80, 40);
-            sunLight.castShadow = true;
             scene.add(sunLight);
             scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 
-            create3DEnvironment();
-            createPlayer3DVehicle(type);
-            spawn3DTraffic();
-            spawn3DPedestrians();
+            // Ground
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshStandardMaterial({ color: 0x4caf50 }));
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
+
+            // Asphalt Street
+            const street = new THREE.Mesh(new THREE.PlaneGeometry(40, 2000), new THREE.MeshStandardMaterial({ color: 0x333333 }));
+            street.rotation.x = -Math.PI / 2;
+            street.position.y = 0.02;
+            scene.add(street);
+
+            // 3D Buildings
+            const bGeo = new THREE.BoxGeometry(20, 50, 20);
+            const bMat = new THREE.MeshStandardMaterial({ color: 0x90a4ae });
+            for(let i = -800; i < 800; i += 120) {
+                if (Math.abs(i) < 60) continue;
+                let bLeft = new THREE.Mesh(bGeo, bMat); bLeft.position.set(-40, 25, i); scene.add(bLeft);
+                let bRight = new THREE.Mesh(bGeo, bMat); bRight.position.set(40, 25, i); scene.add(bRight);
+            }
+
+            // Create Chosen Vehicle + Cockpit Elements
+            playerCar = new THREE.Group();
+            let w = 2.6, h = 1.6, l = 5.5, color = 0x00d2ff;
+            if(type === 'Lorry') { h = 4.2; l = 13; color = 0xff007f; }
+            if(type === 'Bus') { h = 3.8; l = 15; color = 0xffaa00; }
+            if(type === 'Motorcycle') { w = 0.9; h = 1.3; l = 2.4; color = 0x39ff14; }
+
+            const box = new THREE.Mesh(new THREE.BoxGeometry(w, h, l), new THREE.MeshStandardMaterial({ color: color }));
+            box.position.y = h/2 + 0.4;
+            playerCar.add(box);
+
+            steeringWheel = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.04, 6, 18), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
+            steeringWheel.position.set(w * 0.22, h * 0.75, l * 0.18);
+            playerCar.add(steeringWheel);
+            playerCar.position.set(-5, 0, 0);
+            scene.add(playerCar);
+
+            // Traffic
+            const npcMat = new THREE.MeshStandardMaterial({ color: 0x607d8b });
+            const npcGeo = new THREE.BoxGeometry(2.6, 1.7, 5.5);
+            for(let i = 0; i < 4; i++) {
+                let npc = new THREE.Mesh(npcGeo, npcMat); npc.position.set(5, 1.2, -150 - (i * 150));
+                scene.add(npc); npcCars.push(npc);
+            }
+
+            // Pedestrians
+            const pedGeo = new THREE.BoxGeometry(1, 2.4, 1);
+            const pedMat = new THREE.MeshStandardMaterial({ color: 0xff5722 });
+            let ped = new THREE.Mesh(pedGeo, pedMat); ped.position.set(-15, 1.2, 150);
+            scene.add(ped); pedestrians.push({ mesh: ped, dir: 1, state: 'walking' });
 
             window.addEventListener('keydown', (e) => handleInput(e, true));
             window.addEventListener('keyup', (e) => handleInput(e, false));
             window.addEventListener('resize', onWindowResize);
 
             animate3DLoop();
-        }
-
-        function create3DEnvironment() {
-            // Grass landscape field
-            const floor = new THREE.Mesh(
-                new THREE.PlaneGeometry(2000, 2000),
-                new THREE.MeshStandardMaterial({ color: 0x4caf50, roughness: 0.9 })
-            );
-            floor.rotation.x = -Math.PI / 2;
-            floor.receiveShadow = true;
-            scene.add(floor);
-
-            // 3D Grey Asphalt Street
-            const street = new THREE.Mesh(
-                new THREE.PlaneGeometry(40, 2000),
-                new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8 })
-            );
-            street.rotation.x = -Math.PI / 2;
-            street.position.y = 0.02;
-            street.receiveShadow = true;
-            scene.add(street);
-
-            // 3D Blocks representing multi-story city buildings
-            const bGeo = new THREE.BoxGeometry(20, 50, 20);
-            const bMat = new THREE.MeshStandardMaterial({ color: 0x90a4ae });
-            for(let i = -800; i < 800; i += 120) {
-                if (Math.abs(i) < 60) continue;
-                let buildingLeft = new THREE.Mesh(bGeo, bMat);
-                buildingLeft.position.set(-40, 25, i);
-                buildingLeft.castShadow = true;
-                scene.add(buildingLeft);
-
-                let buildingRight = new THREE.Mesh(bGeo, bMat);
-                buildingRight.position.set(40, 25, i);
-                buildingRight.castShadow = true;
-                scene.add(buildingRight);
-            }
-
-            // White 3D Zebra Pedestrian Crosswalk Markings
-            const cMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            for(let xPos = -16; xPos <= 16; xPos += 4) {
-                let marking = new THREE.Mesh(new THREE.PlaneGeometry(2, 10), cMat);
-                marking.rotation.x = -Math.PI / 2;
-                marking.position.set(xPos, 0.03, 150);
-                scene.add(marking);
-            }
-        }
-
-        function createPlayer3DVehicle(type) {
-            playerCar = new THREE.Group();
-
-            let w = 2.6, h = 1.6, l = 5.5, color = 0x00d2ff;
-            if(type === 'Lorry') { h = 4.2; l = 13; color = 0xff007f; }
-            if(type === 'Bus') { h = 3.8; l = 15; color = 0xffaa00; }
-            if(type === 'Motorcycle') { w = 0.9; h = 1.3; l = 2.4; color = 0x39ff14; }
-
-            // 3D Block vehicle body shell
-            const box = new THREE.Mesh(new THREE.BoxGeometry(w, h, l), new THREE.MeshStandardMaterial({ color: color, roughness: 0.3 }));
-            box.position.y = h/2 + 0.4;
-            box.castShadow = true;
-            playerCar.add(box);
-
-            // Realistic Interactive Turning 3D Steering Wheel dashboard ring
-            steeringWheel = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.04, 6, 18), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
-            steeringWheel.position.set(w * 0.22, h * 0.75, l * 0.18);
-            playerCar.add(steeringWheel);
-
-            playerCar.position.set(-5, 0, 0);
-            scene.add(playerCar);
-        }
-
-        function spawn3DTraffic() {
-            const npcMat = new THREE.MeshStandardMaterial({ color: 0x607d8b });
-            const npcGeo = new THREE.BoxGeometry(2.6, 1.7, 5.5);
-            for(let i = 0; i < 4; i++) {
-                let npc = new THREE.Mesh(npcGeo, npcMat);
-                npc.position.set(5, 1.2, -150 - (i * 150));
-                scene.add(npc);
-                npcCars.push(npc);
-            }
-        }
-
-        function spawn3DPedestrians() {
-            const pedGeo = new THREE.BoxGeometry(1, 2.4, 1);
-            const pedMat = new THREE.MeshStandardMaterial({ color: 0xff5722 });
-            let ped = new THREE.Mesh(pedGeo, pedMat);
-            ped.position.set(-15, 1.2, 150);
-            scene.add(ped);
-            pedestrians.push({ mesh: ped, dir: 1, state: 'walking' });
         }
 
         function handleInput(e, isDown) {
@@ -223,43 +175,24 @@
             if(e.key === 'd' || e.key === 'ArrowRight') keys.d = state;
             
             if(isDown && (e.key === 'q' || e.key === 'e')) {
-                playSignalBlinkSound();
+                if(audioCtx) {
+                    let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+                    osc.frequency.setValueAtTime(550, audioCtx.currentTime); gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+                    osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+                }
                 document.getElementById('hud-signal').innerText = e.key.toUpperCase() + ' - BLINKING';
             }
-        }
-
-        function playSignalBlinkSound() {
-            if(!audioCtx) return;
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.frequency.setValueAtTime(550, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.05);
-        }
-
-        function playTrafficHonk() {
-            if(!audioCtx) return;
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(420, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.35);
         }
 
         function animate3DLoop() {
             requestAnimationFrame(animate3DLoop);
 
-            // Driving Physics Vectors
             if (keys.w) speed += 0.5;
             else if (keys.s) speed -= 0.8;
             else speed *= 0.95;
             speed = Math.max(-15, Math.min(speed, 130));
 
-            // Steer handling animations
             if (keys.a) { turnAngle += 0.018; steeringWheel.rotation.z = 1.3; }
             else if (keys.d) { turnAngle -= 0.018; steeringWheel.rotation.z = -1.3; }
             else { steeringWheel.rotation.z *= 0.8; }
@@ -268,37 +201,28 @@
             playerCar.position.x -= Math.sin(turnAngle) * (speed * 0.01);
             playerCar.rotation.y = turnAngle;
 
-            // 3D Over-the-shoulder chase camera viewport tracking tracking vehicle physics positions
-            camera.position.set(
-                playerCar.position.x + Math.sin(turnAngle) * 14,
-                playerCar.position.y + 6,
-                playerCar.position.z + Math.cos(turnAngle) * 14
-            );
+            camera.position.set(playerCar.position.x + Math.sin(turnAngle) * 14, playerCar.position.y + 6, playerCar.position.z + Math.cos(turnAngle) * 14);
             camera.lookAt(playerCar.position.x, playerCar.position.y + 1.2, playerCar.position.z);
 
-            // AI vehicle updates
             npcCars.forEach(npc => {
                 npc.position.z += 0.5;
                 if(npc.position.z > 600) npc.position.z = -600;
-
-                if (playerCar.position.distanceTo(npc.position) < 14) {
-                    playTrafficHonk();
+                if (playerCar.position.distanceTo(npc.position) < 14 && audioCtx) {
+                    let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain(); osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(420, audioCtx.currentTime); gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                    osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.15);
                 }
             });
 
-            // Pedestrian Walk + Ragdoll collision mechanics
             pedestrians.forEach(ped => {
                 if(ped.state === 'walking') {
                     ped.mesh.position.x += 0.07 * ped.dir;
                     if(Math.abs(ped.mesh.position.x) > 16) ped.dir *= -1;
-
                     if(playerCar.position.distanceTo(ped.mesh.position) < 3.8) {
-                        ped.state = 'ragdoll';
-                        ped.mesh.rotation.z = Math.PI / 2; // Knock over flat
-                        ped.mesh.position.y = 0.2;
+                        ped.state = 'ragdoll'; ped.mesh.rotation.z = Math.PI / 2; ped.mesh.position.y = 0.2;
                     }
                 } else if(ped.state === 'ragdoll') {
-                    ped.mesh.position.z -= 0.8; // Physics slide kick-back
+                    ped.mesh.position.z -= 0.8;
                 }
             });
 
@@ -307,8 +231,7 @@
         }
 
         function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
+            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
     </script>
