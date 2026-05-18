@@ -11,7 +11,6 @@
             padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
-            transition: background 0.3s ease;
         }
 
         /* Menu View Style (Dark Mode) */
@@ -97,6 +96,7 @@
             background: #ffffff;
             color: #111119;
             min-height: 100vh;
+            position: relative; /* Needed to lock button to bottom left */
             flex-direction: column;
             align-items: center;
             padding-top: 40px;
@@ -108,6 +108,30 @@
             text-transform: uppercase;
             letter-spacing: 2px;
             margin: 0;
+        }
+
+        /* Red Back Button Style at Bottom Left */
+        .back-btn {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            background-color: #ff3333;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(255, 51, 51, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background-color: #cc0000;
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(255, 51, 51, 0.5);
         }
     </style>
 </head>
@@ -181,18 +205,23 @@
     <!-- SECTION 2: THE BLANK WHITE GAME VIEW -->
     <div id="game-view" class="game-view">
         <h1 id="game-title">Vehicle Name Here</h1>
+        
+        <!-- RED BACK BUTTON -->
+        <button class="back-btn" onclick="showMenu()">Back to Menu</button>
     </div>
 
     <script>
+        // Shows the white game view and hides the menu
         function startGame(vehicleType) {
-            // 1. Hide the dark menu screen
             document.getElementById('menu-view').style.display = 'none';
-            
-            // 2. Change the title on the game screen to match the button text
             document.getElementById('game-title').innerText = vehicleType;
-            
-            // 3. Display the white game screen layout
             document.getElementById('game-view').style.display = 'flex';
+        }
+
+        // Hides the game view and brings back the menu
+        function showMenu() {
+            document.getElementById('game-view').style.display = 'none';
+            document.getElementById('menu-view').style.display = 'flex';
         }
     </script>
 
