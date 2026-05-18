@@ -3,272 +3,285 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro-Level 3D Open World Driving Simulator</title>
+    <title>3D Open World Driving Simulator</title>
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #050508; user-select: none; }
+        body, html { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #06060c; color: white; user-select: none; }
         
-        /* Selection Menu UI */
+        /* Menu Screen UI */
         #menu-view {
             position: absolute; width: 100vw; height: 100vh; z-index: 100;
-            background: linear-gradient(135deg, #0d0d19, #040407);
-            display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;
+            background: linear-gradient(135deg, #101026, #05050a);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         h1 { font-size: 2.2rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 40px; text-shadow: 0 0 10px rgba(0,210,255,0.3); }
         .menu-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; width: 85%; max-width: 900px; }
         .vehicle-btn {
-            background: #141426; border: 2px solid #2a2a44; border-radius: 12px; height: 180px;
+            background: #16162e; border: 2px solid #2d2d48; border-radius: 12px; height: 180px;
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;
             cursor: pointer; transition: all 0.2s ease; color: white; font-size: 1.1rem; font-weight: bold; text-transform: uppercase;
         }
-        .vehicle-btn:hover { transform: translateY(-6px); border-color: #00d2ff; background: #1c1c38; box-shadow: 0 5px 15px rgba(0,210,255,0.2); }
+        .vehicle-btn:hover { transform: translateY(-5px); border-color: #00d2ff; background: #20203f; }
         
-        /* 3D Container Viewport */
-        #canvas-container { width: 100vw; height: 100vh; display: none; }
+        /* Simulation Viewport Screen */
+        #game-view { display: none; position: relative; width: 100vw; height: 100vh; }
+        canvas { width: 100%; height: 100%; display: block; }
         
-        /* Dashboard HUD */
-        #hud {
-            position: absolute; bottom: 25px; left: 25px; background: rgba(10,10,15,0.85);
-            border: 2px solid #ff0055; padding: 12px 25px; border-radius: 8px; color: #fff;
-            font-family: monospace; font-size: 1.3rem; font-weight: bold; z-index: 50;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        /* Telemetry Dashboard Cluster Overlays */
+        #dashboard-ui {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 26vh;
+            background: linear-gradient(to top, #0a0a0f 85%, #1c1c2b 100%);
+            border-top: 5px solid #28283a; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 50px; box-sizing: border-box; z-index: 50;
         }
-        #controls-hint { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.7); padding: 10px 15px; border-radius: 6px; font-size: 0.9rem; color: #bbb; z-index: 50; }
+        .hud-panel { background: rgba(5,5,10,0.7); border: 2px solid #00d2ff; padding: 12px 25px; border-radius: 8px; font-family: monospace; font-size: 1.1rem; min-width: 160px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        #controls-hint { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.75); padding: 10px 15px; border-radius: 6px; font-size: 0.9rem; color: #aaa; z-index: 50; border: 1px solid #2d2d48; }
     </style>
-    
-    <!-- FIX: Points directly to your unblockable local engine file instead of a CDN -->
-    <script src="three.js"></script>
 </head>
 <body>
 
-    <!-- VEHICLE SELECTION MENU -->
+    <!-- SELECTION MENU -->
     <div id="menu-view">
         <h1>Select Your Vehicle Model</h1>
         <div class="menu-container">
-            <button class="vehicle-btn" onclick="initSimulation('car')">🚗 Sedan Car</button>
-            <button class="vehicle-btn" onclick="initSimulation('lorry')">🚛 Heavy Lorry</button>
-            <button class="vehicle-btn" onclick="initSimulation('motorcycle')">🏍️ Motorcycle</button>
-            <button class="vehicle-btn" onclick="initSimulation('bus')">🚌 Transit Bus</button>
+            <button class="vehicle-btn" onclick="launch3D('car')">🚗 Sedan Car</button>
+            <button class="vehicle-btn" onclick="launch3D('lorry')">0 Heavy Lorry</button>
+            <button class="vehicle-btn" onclick="launch3D('motorcycle')">🏍️ Motorcycle</button>
+            <button class="vehicle-btn" onclick="launch3D('bus')">🚌 Transit Bus</button>
         </div>
     </div>
 
-    <!-- MAIN GAME SCREEN -->
-    <div id="controls-hint">W/S: Throttle/Brake | A/D: Turn Front Wheels Smoothly</div>
-    <div id="canvas-container"></div>
-    <div id="hud">SPEED: <span id="hud-speed">0</span> KM/H</div>
+    <!-- SIMULATION CANVAS VIEWPORT -->
+    <div id="game-view">
+        <div id="controls-hint">W/S: Throttle/Brake | A/D: Turn Steering Axle</div>
+        <canvas id="renderCanvas"></canvas>
+        
+        <!-- FIRST-PERSON DASHBOARD CONSOLE HUD -->
+        <div id="dashboard-ui">
+            <div class="hud-panel">
+                GEAR MODEL: <span id="hud-model">-</span><br>
+                STATUS: <span style="color: #39ff14;">ACTIVE</span>
+            </div>
+            <div class="hud-panel" style="font-size: 1.5rem; text-align: center; border-color: #ff0055;">
+                <span id="hud-speed">0</span><br><span style="font-size: 0.75rem; color: #666;">KM/H</span>
+            </div>
+        </div>
+    </div>
 
     <script>
-        let scene, camera, renderer;
-        let keys = { w:0, a:0, s:0, d:0 };
-        let speed = 0, turnAngle = 0;
+        const canvas = document.getElementById('renderCanvas');
+        const ctx = canvas.getContext('2d');
         
-        let vehicleGroup, steeringWheelMesh, leftFrontWheel, rightFrontWheel;
-        let npcCars = [];
-        let driverGroup;
+        let keys = { w:0, a:0, s:0, d:0 };
+        let activeModel = '';
+        let simInterval;
 
-        let config = {
-            car: { width: 2.6, height: 1.6, length: 5.5, seatX: -0.6, seatY: 0.9, seatZ: 0.2, color: 0x00d2ff },
-            lorry: { width: 3.2, height: 4.2, length: 14.0, seatX: -0.9, seatY: 2.4, seatZ: 4.2, color: 0xff007f },
-            motorcycle: { width: 0.8, height: 1.2, length: 2.4, seatX: 0.0, seatY: 0.9, seatZ: -0.2, color: 0x39ff14 },
-            bus: { width: 3.0, height: 3.6, length: 16.0, seatX: -0.8, seatY: 2.0, seatZ: 5.5, color: 0xffaa00 }
+        // --- REAL LIFE VEHICLE KINEMATICS PHYSICS SYSTEM ---
+        let car = {
+            x: 0, y: 1500,          // Position coordinates on map space
+            speed: 0,
+            angle: 0,              // Vehicle body facing rotation angle
+            wheelAngle: 0,         // Angular turn lock of front wheel axle
+            maxWheelAngle: 0.45,   // Real limits on steering tire angles
+            wheelbase: 4.8,        // Distance between front and rear tracking wheels
+            width: 2.5,
+            height: 1.5,
+            color: '#00d2ff',
+            seatX: -0.65           // Sits the character POV inside the left seat area
         };
 
-        window.initSimulation = function(type) {
-            document.getElementById('menu-view').style.display = 'none';
-            document.getElementById('canvas-container').style.display = 'block';
-            setup3DEngine(type);
-        };
+        // --- MASSIVE MAP LAYOUT STRUCTURE NODES ---
+        let worldBlocks = [];
+        let trafficCars = [];
 
-        function setup3DEngine(type) {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xaaccff);
-            scene.fog = new THREE.FogExp2(0xaaccff, 0.005);
-
-            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 2000);
-            
-            // Checks for compatibility between WebGL and your downloaded engine version
-            if (typeof THREE.WebGLRenderer !== 'undefined') {
-                renderer = new THREE.WebGLRenderer({ antialias: true });
-            } else {
-                renderer = new THREE.WebGPURenderer({ antialias: true });
-            }
-            
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-            const sun = new THREE.DirectionalLight(0xffffff, 1.4);
-            sun.position.set(200, 400, 200);
-            scene.add(sun);
-            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-
-            buildMassiveCityGrid();
-            assembleVehicleEntity(type);
-            assembleDriverPerson(type);
-            spawnNPCTraffic(type);
-
-            window.addEventListener('keydown', (e) => handleInput(e, true));
-            window.addEventListener('keyup', (e) => handleInput(e, false));
-            window.addEventListener('resize', onWindowResize);
-
-            animateFrameLoop();
+        function resizeViewport() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         }
 
-        function buildMassiveCityGrid() {
-            // Massive 4000x4000 meter map plane
-            const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshStandardMaterial({ color: 0x3d5c2e }));
-            ground.rotation.x = -Math.PI / 2;
-            scene.add(ground);
+        window.launch3D = function(type) {
+            document.getElementById('menu-view').style.display = 'none';
+            document.getElementById('game-view').style.display = 'block';
+            document.getElementById('hud-model').innerText = type.toUpperCase();
+            
+            activeModel = type;
+            // Adjust unique dimensional values matching your exact model choices
+            if (type === 'lorry') { car.wheelbase = 12.0; car.width = 3.2; car.height = 4.0; car.color = '#ff007f'; }
+            if (type === 'bus') { car.wheelbase = 14.0; car.width = 3.0; car.height = 3.5; car.color = '#ffaa00'; }
+            if (type === 'motorcycle') { car.wheelbase = 2.4; car.width = 0.8; car.height = 1.2; car.color = '#39ff14'; car.seatX = 0; }
 
-            const roadMat = new THREE.MeshStandardMaterial({ color: 0x222225 });
-            const h1 = new THREE.Mesh(new THREE.PlaneGeometry(60, 4000), roadMat);
-            h1.rotation.x = -Math.PI / 2; h1.position.y = 0.02; scene.add(h1);
+            resizeViewport();
+            window.addEventListener('keydown', (e) => handleInputs(e, true));
+            window.addEventListener('keyup', (e) => handleInputs(e, false));
+            window.addEventListener('resize', resizeViewport);
 
-            for (let zPos = -1500; zPos <= 1500; zPos += 1000) {
-                const h2 = new THREE.Mesh(new THREE.PlaneGeometry(4000, 40), roadMat);
-                h2.rotation.x = -Math.PI / 2; h2.position.set(0, 0.03, zPos); scene.add(h2);
-            }
-
-            const buildMat = new THREE.MeshStandardMaterial({ color: 0x78909c });
-            for(let x = -1500; x <= 1500; x += 300) {
-                for(let z = -1500; z <= 1500; z += 300) {
-                    if (Math.abs(x) < 60 && Math.abs(z % 1000) < 60) continue;
-                    let h = 40 + Math.random() * 120;
-                    let building = new THREE.Mesh(new THREE.BoxGeometry(40, h, 40), buildMat);
-                    building.position.set(x, h/2, z);
-                    scene.add(building);
+            // GENERATE A A LOT BIGGER MAP INFRASTRUCTURE ENVIRONMENT NODES
+            // Generates a massive city layout spanning 3000 meters filled with skyscraper structures
+            for (let x = -1500; x <= 1500; x += 250) {
+                for (let y = 0; y <= 3000; y += 250) {
+                    if (Math.abs(x) < 30) continue; // Leaves space for the main straightaway highway lanes
+                    
+                    let blockHeight = 35 + Math.random() * 95;
+                    worldBlocks.push({ x: x, y: y, z: 0, w: 30, l: 30, h: blockHeight });
                 }
             }
+
+            // Spawn computer traffic loops
+            for(let i = 0; i < 8; i++) {
+                trafficCars.push({ x: 8, y: 400 + (i * 300), speed: 4, color: '#555566' });
+            }
+
+            simInterval = setInterval(runMatrixPhysicsTick, 1000 / 60);
+        };
+
+        function handleInputs(e, isPressed) {
+            let state = isPressed ? 1 : 0;
+            if (e.key === 'w' || e.key === 'ArrowUp') keys.w = state;
+            if (e.key === 's' || e.key === 'ArrowDown') keys.s = state;
+            if (e.key === 'a' || e.key === 'ArrowLeft') keys.a = state;
+            if (e.key === 'd' || e.key === 'ArrowRight') keys.d = state;
         }
 
-        function assembleVehicleEntity(type) {
-            vehicleGroup = new THREE.Group();
-            let v = config[type];
+        function runMatrixPhysicsTick() {
+            // 1. --- REAL AXLE STEERING MECHANICS (Ackermann Math Vector Transformations) ---
+            if (keys.a) car.wheelAngle = Math.max(-car.maxWheelAngle, car.wheelAngle - 0.018);
+            else if (keys.d) car.wheelAngle = Math.min(car.maxWheelAngle, car.wheelAngle + 0.018);
+            else car.wheelAngle *= 0.82; // Wheels snap back straight cleanly on release
 
-            const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(v.width, v.height, v.length), new THREE.MeshStandardMaterial({ color: v.color }));
-            bodyMesh.position.y = v.height / 2 + 0.4;
-            vehicleGroup.add(bodyMesh);
+            if (keys.w) car.speed += 0.18;
+            else if (keys.s) car.speed -= 0.45;
+            else car.speed *= 0.96;
+            car.speed = Math.max(-6, Math.min(car.speed, 115));
 
-            if (type !== 'motorcycle') {
-                const windowMesh = new THREE.Mesh(new THREE.BoxGeometry(v.width - 0.1, v.height * 0.4, v.length * 0.3), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 }));
-                windowMesh.position.set(0, v.height * 0.8, v.length * 0.25);
-                vehicleGroup.add(windowMesh);
-            }
+            // Tracking the positions of the front and rear axles independently
+            let fx = car.x + (car.wheelbase / 2) * Math.sin(car.angle);
+            let fy = car.y - (car.wheelbase / 2) * Math.cos(car.angle);
+            let rx = car.x - (car.wheelbase / 2) * Math.sin(car.angle);
+            let ry = car.y + (car.wheelbase / 2) * Math.cos(car.angle);
 
-            const seatMesh = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshStandardMaterial({ color: 0x111115 }));
-            seatMesh.position.set(v.seatX, 0.6, v.seatZ);
-            vehicleGroup.add(seatMesh);
+            // Shift axles relative to wheel rotation angles
+            rx += car.speed * 0.04 * Math.sin(car.angle);
+            ry -= car.speed * 0.04 * Math.cos(car.angle);
 
-            if (type !== 'motorcycle') {
-                steeringWheelMesh = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 6, 16), new THREE.MeshStandardMaterial({ color: 0x222225 }));
-                steeringWheelMesh.position.set(v.seatX, v.height * 0.72, v.seatZ + v.length * 0.15);
-                steeringWheelMesh.rotation.x = -Math.PI / 4;
-                vehicleGroup.add(steeringWheelMesh);
-            }
+            fx += car.speed * 0.04 * Math.sin(car.angle + car.wheelAngle);
+            fy -= car.speed * 0.04 * Math.cos(car.angle + car.wheelAngle);
 
-            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-            const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.4, 16);
-            wheelGeo.rotateZ(Math.PI / 2);
+            // Recombine positions to calculate vehicle body drift vectors and heading rotation values
+            car.x = (fx + rx) / 2;
+            car.y = (fy + ry) / 2;
+            car.angle = Math.atan2(fx - rx, ry - fy);
 
-            leftFrontWheel = new THREE.Mesh(wheelGeo, wheelMat);
-            leftFrontWheel.position.set(-v.width/2 - 0.1, 0.4, v.length * 0.35);
-            vehicleGroup.add(leftFrontWheel);
-
-            rightFrontWheel = new THREE.Mesh(wheelGeo, wheelMat);
-            rightFrontWheel.position.set(v.width/2 + 0.1, 0.4, v.length * 0.35);
-            vehicleGroup.add(rightFrontWheel);
-
-            vehicleGroup.position.set(0, 0, 2000); // Spawns safely on the edge of the massive grid map
-            scene.add(vehicleGroup);
-        }
-
-        function assembleDriverPerson(type) {
-            driverGroup = new THREE.Group();
-            let v = config[type];
-
-            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.4), new THREE.MeshStandardMaterial({ color: 0x3f51b5 }));
-            torso.position.y = 0.3; driverGroup.add(torso);
-
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), new THREE.MeshStandardMaterial({ color: 0xffdbac }));
-            head.position.y = 0.75; driverGroup.add(head);
-
-            const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.04), new THREE.MeshStandardMaterial({ color: 0x000000 }));
-            leftEye.position.set(-0.08, 0.8, 0.16); driverGroup.add(leftEye);
-
-            const armGeo = new THREE.BoxGeometry(0.12, 0.12, 0.5);
-            const leftArm = new THREE.Mesh(armGeo, new THREE.MeshStandardMaterial({ color: 0xffdbac }));
-            leftArm.position.set(-0.25, 0.4, 0.25); driverGroup.add(leftArm);
-
-            driverGroup.position.set(v.seatX, v.seatY - 0.5, v.seatZ);
-            vehicleGroup.add(driverGroup);
-        }
-
-        function spawnNPCTraffic(playerType) {
-            let v = config[playerType];
-            for(let i = 0; i < 6; i++) {
-                let npc = new THREE.Mesh(new THREE.BoxGeometry(v.width, v.height, v.length), new THREE.MeshStandardMaterial({ color: 0x555566 }));
-                npc.position.set(15, v.height/2 + 0.4, -300 - (i * 250));
-                scene.add(npc); npcCars.push(npc);
-            }
-        }
-
-        function handleInput(e, isDown) {
-            const state = isDown ? 1 : 0;
-            if(e.key === 'w' || e.key === 'ArrowUp') keys.w = state;
-            if(e.key === 's' || e.key === 'ArrowDown') keys.s = state;
-            if(e.key === 'a' || e.key === 'ArrowLeft') keys.a = state;
-            if(e.key === 'd' || e.key === 'ArrowRight') keys.d = state;
-        }
-
-        function animateFrameLoop() {
-            requestAnimationFrame(animateFrameLoop);
-
-            if (keys.w) speed += 0.25;
-            else if (keys.s) speed -= 0.45;
-            else speed *= 0.96;
-            speed = Math.max(-8, Math.min(speed, 110));
-
-            if (keys.a) { 
-                turnAngle += 0.005 * (speed / 40); 
-                if (steeringWheelMesh) steeringWheelMesh.rotation.z = 0.8;
-                leftFrontWheel.rotation.y = 0.4; rightFrontWheel.rotation.y = 0.4;
-            }
-            else if (keys.d) { 
-                turnAngle -= 0.005 * (speed / 40); 
-                if (steeringWheelMesh) steeringWheelMesh.rotation.z = -0.8;
-                leftFrontWheel.rotation.y = -0.4; rightFrontWheel.rotation.y = -0.4;
-            }
-            else { 
-                if (steeringWheelMesh) steeringWheelMesh.rotation.z *= 0.8;
-                leftFrontWheel.rotation.y *= 0.8; rightFrontWheel.rotation.y *= 0.8;
-            }
-
-            vehicleGroup.position.z -= Math.cos(turnAngle) * (speed * 0.02);
-            vehicleGroup.position.x -= Math.sin(turnAngle) * (speed * 0.02);
-            vehicleGroup.rotation.y = turnAngle;
-
-            // Target camera positioning right in character eye sockets
-            let targetEyeVector = new THREE.Vector3(0, 0.8, 0.16); 
-            driverGroup.localToWorld(targetEyeVector); 
-            camera.position.copy(targetEyeVector); 
-
-            let lookTarget = new THREE.Vector3(0, 0.8, 20); 
-            driverGroup.localToWorld(lookTarget);
-            camera.lookAt(lookTarget);
-
-            npcCars.forEach(npc => {
-                npc.position.z += 0.5;
-                if(npc.position.z > 2000) npc.position.z = -2000;
+            // Run computer traffic update loops
+            trafficCars.forEach(npc => {
+                npc.y += npc.speed * 0.4;
+                if (npc.y > car.y + 600) npc.y = car.y - 600;
             });
 
-            document.getElementById('hud-speed').innerText = Math.round(Math.abs(speed));
-            if (renderer) renderer.render(scene, camera);
-        }
+            // 2. --- REAL-TIME 3D PERSPECTIVE ENVIRONMENT MATRIX RENDERING ---
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw Ground and Sky Separations
+            let horizonLineY = canvas.height * 0.4;
+            let cx = canvas.width / 2;
+            let fov = 400; // Focal zoom length
 
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            ctx.fillStyle = '#22331c'; // Grass land plane
+            ctx.fillRect(0, horizonLineY, canvas.width, canvas.height - horizonLineY);
+            ctx.fillStyle = '#83c3eb'; // Cyan atmospheric sky
+            ctx.fillRect(0, 0, canvas.width, horizonLineY);
+
+            // --- PURE MATHEMATICAL 3D COORDINATE PERSPECTIVE PROJECTION ---
+            function projectCoordinate3D(worldX, worldY, worldZ) {
+                // Aligns camera to match driver eye coordinates inside left cabin seat layout bounds
+                let headOffsetX = Math.sin(car.angle) * car.seatX;
+                let headOffsetY = Math.cos(car.angle) * car.seatX;
+                
+                let relX = worldX - (car.x + headOffsetX);
+                let relY = worldY - (car.y + headOffsetY);
+
+                // Pivot world space around driver's orientation angle
+                let rotX = relX * Math.cos(-car.angle) - relY * Math.sin(-car.angle);
+                let rotY = relX * Math.sin(-car.angle) + relY * Math.cos(-car.angle);
+
+                if (rotY >= -0.5) return null; // Behind camera plane viewport clipping loop
+
+                let projectionScale = fov / -rotY;
+                return {
+                    x: cx + rotX * projectionScale,
+                    y: horizonLineY + (worldZ - car.height * 0.85) * projectionScale, // Eye level height sits at dashboard seat parameters
+                    sz: projectionScale
+                };
+            }
+
+            // Draw Highway Asphalt Street Lines
+            ctx.fillStyle = '#252528';
+            ctx.beginPath();
+            let lf = projectCoordinate3D(-20, car.y - 1200, 0);
+            let rf = projectCoordinate3D(20, car.y - 1200, 0);
+            let rn = projectCoordinate3D(20, car.y + 40, 0);
+            let ln = projectCoordinate3D(-20, car.y + 40, 0);
+
+            if (lf && rf && rn && ln) {
+                ctx.moveTo(lf.x, lf.y); ctx.lineTo(rf.x, rf.y); ctx.lineTo(rn.x, rn.y); ctx.lineTo(ln.x, ln.y);
+                ctx.fill();
+            }
+
+            // Draw Yellow Lane Dividers
+            ctx.fillStyle = '#ffbb00';
+            for (let markY = Math.floor(car.y - 1000); markY < car.y + 200; markY += 80) {
+                let m1 = projectCoordinate3D(0, markY, 0);
+                if (m1) ctx.fillRect(m1.x - m1.sz * 0.1, m1.y, m1.sz * 0.2, m1.sz * 5);
+            }
+
+            // Draw 3D Solid Scraper Blocks sorted by distance metrics to display layering depth
+            worldBlocks.forEach(b => {
+                // Skips rendering items too far behind camera viewport
+                if (Math.abs(b.y - car.y) > 1400) return;
+
+                let bBase = projectCoordinate3D(b.x, b.y, 0);
+                if (bBase) {
+                    let w = b.w * bBase.sz;
+                    let h = b.h * bBase.sz;
+                    
+                    ctx.fillStyle = '#6d8896';
+                    ctx.fillRect(bBase.x - w/2, bBase.y - h, w, h);
+                    ctx.strokeStyle = '#4b5e68';
+                    ctx.strokeRect(bBase.x - w/2, bBase.y - h, w, h);
+                }
+            });
+
+            // Draw Traffic NPC Vehicles scaling smoothly matching positions
+            trafficCars.forEach(npc => {
+                let p = projectCoordinate3D(npc.x, npc.y, 0);
+                if (p) {
+                    let w = car.width * p.sz;
+                    let h = car.height * p.sz;
+                    ctx.fillStyle = npc.color;
+                    ctx.fillRect(p.x - w / 2, p.y - h, w, h);
+                    
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                    ctx.fillRect(p.x - w / 2 + 3, p.y - h + 2, w - 6, h * 0.25);
+                }
+            });
+
+            // Draw Your Left-Hand Wheel Assembly & dashboard frame console overlay controls
+            if (activeModel !== 'motorcycle') {
+                ctx.save();
+                ctx.translate(cx - 240, canvas.height * 0.68); // Displaces steering wheel exactly on left cockpit axis parameters
+                ctx.rotate(car.wheelAngle * 2.8);              // Natural rotation locks multiplier
+                
+                ctx.lineWidth = 20;
+                ctx.strokeStyle = '#18181f';
+                ctx.beginPath(); ctx.arc(0, 0, 95, 0, Math.PI * 2); ctx.stroke();
+                
+                ctx.fillStyle = '#111116';
+                ctx.fillRect(-85, -6, 170, 12);
+                ctx.fillRect(-6, 0, 12, 85);
+                ctx.restore();
+            }
+
+            document.getElementById('hud-speed').innerText = Math.round(Math.abs(car.speed));
         }
     </script>
 </body>
 </html>
+
