@@ -22,7 +22,7 @@
         }
         .vehicle-btn:hover { transform: translateY(-6px); border-color: #00d2ff; background: #1c1c38; box-shadow: 0 5px 15px rgba(0,210,255,0.2); }
         
-        /* 3D Container viewport viewport */
+        /* 3D Container Viewport */
         #canvas-container { width: 100vw; height: 100vh; display: none; }
         
         /* Dashboard HUD */
@@ -35,8 +35,8 @@
         #controls-hint { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.7); padding: 10px 15px; border-radius: 6px; font-size: 0.9rem; color: #bbb; z-index: 50; }
     </style>
     
-    <!-- Standard Production-Ready Three.js Script Library Injection -->
-    <script src="https://cloudflare.com"></script>
+    <!-- FIX: Points directly to your unblockable local engine file instead of a CDN -->
+    <script src="three.js"></script>
 </head>
 <body>
 
@@ -57,18 +57,14 @@
     <div id="hud">SPEED: <span id="hud-speed">0</span> KM/H</div>
 
     <script>
-        let scene, camera, renderer, audioCtx;
+        let scene, camera, renderer;
         let keys = { w:0, a:0, s:0, d:0 };
         let speed = 0, turnAngle = 0;
         
-        // Vehicle Assembly References
         let vehicleGroup, steeringWheelMesh, leftFrontWheel, rightFrontWheel;
-        let npcCars = [], pedestrians = [];
-        
-        // Driver Reference
+        let npcCars = [];
         let driverGroup;
 
-        // Configuration settings mapping to each vehicle configuration
         let config = {
             car: { width: 2.6, height: 1.6, length: 5.5, seatX: -0.6, seatY: 0.9, seatZ: 0.2, color: 0x00d2ff },
             lorry: { width: 3.2, height: 4.2, length: 14.0, seatX: -0.9, seatY: 2.4, seatZ: 4.2, color: 0xff007f },
@@ -79,40 +75,35 @@
         window.initSimulation = function(type) {
             document.getElementById('menu-view').style.display = 'none';
             document.getElementById('canvas-container').style.display = 'block';
-            
             setup3DEngine(type);
         };
 
         function setup3DEngine(type) {
-            // Create the scene view and atmospheric setups
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xaaccff);
-            scene.fog = new THREE.FogExp2(0xaaccff, 0.005); // Fog parameters over massive horizons
+            scene.fog = new THREE.FogExp2(0xaaccff, 0.005);
 
             camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 2000);
             
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            // Checks for compatibility between WebGL and your downloaded engine version
+            if (typeof THREE.WebGLRenderer !== 'undefined') {
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+            } else {
+                renderer = new THREE.WebGPURenderer({ antialias: true });
+            }
+            
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
             document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-            // Lighting setups
             const sun = new THREE.DirectionalLight(0xffffff, 1.4);
             sun.position.set(200, 400, 200);
-            sun.castShadow = true;
             scene.add(sun);
             scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 
-            // Generate massive open map infrastructure
             buildMassiveCityGrid();
-
-            // Construct separate vehicle body shell architecture
             assembleVehicleEntity(type);
-
-            // Construct a distinct driver model with limbs and eyes
             assembleDriverPerson(type);
-
-            // Set up traffic and loops
             spawnNPCTraffic(type);
 
             window.addEventListener('keydown', (e) => handleInput(e, true));
@@ -123,30 +114,154 @@
         }
 
         function buildMassiveCityGrid() {
-            // A LOT BIGGER MAP (4000x4000 meter floor workspace coordinates grid)
-            const ground = new THREE.Mesh(
-                new THREE.PlaneGeometry(4000, 4000),
-                new THREE.MeshStandardMaterial({ color: 0x3d5c2e, roughness: 0.9 })
-            );
+            // Massive 4000x4000 meter map plane
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshStandardMaterial({ color: 0x3d5c2e }));
             ground.rotation.x = -Math.PI / 2;
-            ground.receiveShadow = true;
             scene.add(ground);
 
-            // Extensive Multi-Lane Intersecting Asphalt Highway track network
-            const roadMat = new THREE.MeshStandardMaterial({ color: 0x222225, roughness: 0.7 });
-            
-            // Main vertical highway strip
+            const roadMat = new THREE.MeshStandardMaterial({ color: 0x222225 });
             const h1 = new THREE.Mesh(new THREE.PlaneGeometry(60, 4000), roadMat);
-            h1.rotation.x = -Math.PI / 2; h1.position.y = 0.02; h1.receiveShadow = true; scene.add(h1);
+            h1.rotation.x = -Math.PI / 2; h1.position.y = 0.02; scene.add(h1);
 
-            // Intersecting horizontal highway strips (Creates vast street grid corners and loops)
-            for (let zPos = -1500; zPos  {
-                npc.position.z += 0.6;
+            for (let zPos = -1500; zPos <= 1500; zPos += 1000) {
+                const h2 = new THREE.Mesh(new THREE.PlaneGeometry(4000, 40), roadMat);
+                h2.rotation.x = -Math.PI / 2; h2.position.set(0, 0.03, zPos); scene.add(h2);
+            }
+
+            const buildMat = new THREE.MeshStandardMaterial({ color: 0x78909c });
+            for(let x = -1500; x <= 1500; x += 300) {
+                for(let z = -1500; z <= 1500; z += 300) {
+                    if (Math.abs(x) < 60 && Math.abs(z % 1000) < 60) continue;
+                    let h = 40 + Math.random() * 120;
+                    let building = new THREE.Mesh(new THREE.BoxGeometry(40, h, 40), buildMat);
+                    building.position.set(x, h/2, z);
+                    scene.add(building);
+                }
+            }
+        }
+
+        function assembleVehicleEntity(type) {
+            vehicleGroup = new THREE.Group();
+            let v = config[type];
+
+            const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(v.width, v.height, v.length), new THREE.MeshStandardMaterial({ color: v.color }));
+            bodyMesh.position.y = v.height / 2 + 0.4;
+            vehicleGroup.add(bodyMesh);
+
+            if (type !== 'motorcycle') {
+                const windowMesh = new THREE.Mesh(new THREE.BoxGeometry(v.width - 0.1, v.height * 0.4, v.length * 0.3), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 }));
+                windowMesh.position.set(0, v.height * 0.8, v.length * 0.25);
+                vehicleGroup.add(windowMesh);
+            }
+
+            const seatMesh = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshStandardMaterial({ color: 0x111115 }));
+            seatMesh.position.set(v.seatX, 0.6, v.seatZ);
+            vehicleGroup.add(seatMesh);
+
+            if (type !== 'motorcycle') {
+                steeringWheelMesh = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 6, 16), new THREE.MeshStandardMaterial({ color: 0x222225 }));
+                steeringWheelMesh.position.set(v.seatX, v.height * 0.72, v.seatZ + v.length * 0.15);
+                steeringWheelMesh.rotation.x = -Math.PI / 4;
+                vehicleGroup.add(steeringWheelMesh);
+            }
+
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.4, 16);
+            wheelGeo.rotateZ(Math.PI / 2);
+
+            leftFrontWheel = new THREE.Mesh(wheelGeo, wheelMat);
+            leftFrontWheel.position.set(-v.width/2 - 0.1, 0.4, v.length * 0.35);
+            vehicleGroup.add(leftFrontWheel);
+
+            rightFrontWheel = new THREE.Mesh(wheelGeo, wheelMat);
+            rightFrontWheel.position.set(v.width/2 + 0.1, 0.4, v.length * 0.35);
+            vehicleGroup.add(rightFrontWheel);
+
+            vehicleGroup.position.set(0, 0, 2000); // Spawns safely on the edge of the massive grid map
+            scene.add(vehicleGroup);
+        }
+
+        function assembleDriverPerson(type) {
+            driverGroup = new THREE.Group();
+            let v = config[type];
+
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.4), new THREE.MeshStandardMaterial({ color: 0x3f51b5 }));
+            torso.position.y = 0.3; driverGroup.add(torso);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), new THREE.MeshStandardMaterial({ color: 0xffdbac }));
+            head.position.y = 0.75; driverGroup.add(head);
+
+            const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.04), new THREE.MeshStandardMaterial({ color: 0x000000 }));
+            leftEye.position.set(-0.08, 0.8, 0.16); driverGroup.add(leftEye);
+
+            const armGeo = new THREE.BoxGeometry(0.12, 0.12, 0.5);
+            const leftArm = new THREE.Mesh(armGeo, new THREE.MeshStandardMaterial({ color: 0xffdbac }));
+            leftArm.position.set(-0.25, 0.4, 0.25); driverGroup.add(leftArm);
+
+            driverGroup.position.set(v.seatX, v.seatY - 0.5, v.seatZ);
+            vehicleGroup.add(driverGroup);
+        }
+
+        function spawnNPCTraffic(playerType) {
+            let v = config[playerType];
+            for(let i = 0; i < 6; i++) {
+                let npc = new THREE.Mesh(new THREE.BoxGeometry(v.width, v.height, v.length), new THREE.MeshStandardMaterial({ color: 0x555566 }));
+                npc.position.set(15, v.height/2 + 0.4, -300 - (i * 250));
+                scene.add(npc); npcCars.push(npc);
+            }
+        }
+
+        function handleInput(e, isDown) {
+            const state = isDown ? 1 : 0;
+            if(e.key === 'w' || e.key === 'ArrowUp') keys.w = state;
+            if(e.key === 's' || e.key === 'ArrowDown') keys.s = state;
+            if(e.key === 'a' || e.key === 'ArrowLeft') keys.a = state;
+            if(e.key === 'd' || e.key === 'ArrowRight') keys.d = state;
+        }
+
+        function animateFrameLoop() {
+            requestAnimationFrame(animateFrameLoop);
+
+            if (keys.w) speed += 0.25;
+            else if (keys.s) speed -= 0.45;
+            else speed *= 0.96;
+            speed = Math.max(-8, Math.min(speed, 110));
+
+            if (keys.a) { 
+                turnAngle += 0.005 * (speed / 40); 
+                if (steeringWheelMesh) steeringWheelMesh.rotation.z = 0.8;
+                leftFrontWheel.rotation.y = 0.4; rightFrontWheel.rotation.y = 0.4;
+            }
+            else if (keys.d) { 
+                turnAngle -= 0.005 * (speed / 40); 
+                if (steeringWheelMesh) steeringWheelMesh.rotation.z = -0.8;
+                leftFrontWheel.rotation.y = -0.4; rightFrontWheel.rotation.y = -0.4;
+            }
+            else { 
+                if (steeringWheelMesh) steeringWheelMesh.rotation.z *= 0.8;
+                leftFrontWheel.rotation.y *= 0.8; rightFrontWheel.rotation.y *= 0.8;
+            }
+
+            vehicleGroup.position.z -= Math.cos(turnAngle) * (speed * 0.02);
+            vehicleGroup.position.x -= Math.sin(turnAngle) * (speed * 0.02);
+            vehicleGroup.rotation.y = turnAngle;
+
+            // Target camera positioning right in character eye sockets
+            let targetEyeVector = new THREE.Vector3(0, 0.8, 0.16); 
+            driverGroup.localToWorld(targetEyeVector); 
+            camera.position.copy(targetEyeVector); 
+
+            let lookTarget = new THREE.Vector3(0, 0.8, 20); 
+            driverGroup.localToWorld(lookTarget);
+            camera.lookAt(lookTarget);
+
+            npcCars.forEach(npc => {
+                npc.position.z += 0.5;
                 if(npc.position.z > 2000) npc.position.z = -2000;
             });
 
             document.getElementById('hud-speed').innerText = Math.round(Math.abs(speed));
-            renderer.render(scene, camera);
+            if (renderer) renderer.render(scene, camera);
         }
 
         function onWindowResize() {
@@ -157,4 +272,3 @@
     </script>
 </body>
 </html>
-
