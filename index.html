@@ -33,15 +33,8 @@
         #controls-hint { position: absolute; bottom: 20px; right: 20px; color: #aaa; font-size: 0.9rem; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; display: none; }
     </style>
     
-    <!-- ES Modules Shims & Core Libraries via CDN -->
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://unpkg.com",
-          "three/addons/": "https://unpkg.com"
-        }
-      }
-    </script>
+    <!-- Standard Production-Ready Three.js Script -->
+    <script src="https://cloudflare.com"></script>
 </head>
 <body>
 
@@ -80,16 +73,13 @@
     <div id="controls-hint">Use WASD or Arrows to drive. Q/E for Indicators. Space to brake.</div>
 
     <!-- GAME ENGINE LOGIC -->
-    <script type="module">
-        import * as THREE from 'three';
-
+    <script>
         let scene, camera, renderer, playerCar, steeringWheel;
         let keys = { w:0, a:0, s:0, d:0, q:0, e:0 };
         let speed = 0, turnAngle = 0;
         let npcCars = [], pedestrians = [];
-        let audioCtx, indicatorSound;
+        let audioCtx;
 
-        // Initialize Audio API for simulated indicator clicking sounds
         function initAudio() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
@@ -106,7 +96,6 @@
         };
 
         function setup3DWorld(type) {
-            // Setup base scene and smooth lighting
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xaaccff);
             scene.fog = new THREE.FogExp2(0xaaccff, 0.015);
@@ -124,17 +113,11 @@
             scene.add(sunLight);
             scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
-            // Generate Map Infrastructure (Streets, Buildings, Terrain)
             createCityLayout();
-
-            // Create Chosen Vehicle + Cockpit Elements
             createPlayerVehicle(type);
-
-            // Populate Town with Active Simulation Elements
             spawnTraffic();
             spawnPedestrians();
 
-            // Event Hooks
             window.addEventListener('keydown', (e) => handleInput(e, true));
             window.addEventListener('keyup', (e) => handleInput(e, false));
             window.addEventListener('resize', onWindowResize);
@@ -143,7 +126,6 @@
         }
 
         function createCityLayout() {
-            // Endless ground map
             const floorGeo = new THREE.PlaneGeometry(2000, 2000);
             const floorMat = new THREE.MeshStandardMaterial({ color: 0x557a46 });
             const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -151,7 +133,6 @@
             floor.receiveShadow = true;
             scene.add(floor);
 
-            // Asphalt Grid Roads
             const roadMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
             const mainStreet = new THREE.Mesh(new THREE.PlaneGeometry(30, 1000), roadMat);
             mainStreet.rotation.x = -Math.PI / 2;
@@ -159,7 +140,6 @@
             mainStreet.receiveShadow = true;
             scene.add(mainStreet);
 
-            // Generate low-poly houses/buildings along the road layout
             const buildGeo = new THREE.BoxGeometry(20, 40, 20);
             const buildMat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d });
             for(let i = -500; i < 500; i += 80) {
@@ -175,7 +155,6 @@
                 scene.add(b2);
             }
 
-            // Zebra Crossing Lines
             const crossMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
             for(let step = -12; step <= 12; step += 4) {
                 let stripe = new THREE.Mesh(new THREE.PlaneGeometry(2, 8), crossMat);
@@ -188,13 +167,11 @@
         function createPlayerVehicle(type) {
             playerCar = new THREE.Group();
 
-            // Set size parameters based on vehicle classification selection
             let w = 2.5, h = 1.8, l = 5, color = 0x00d2ff;
             if(type === 'Lorry') { h = 4; l = 12; color = 0xff007f; }
             if(type === 'Bus') { h = 3.5; l = 14; color = 0xffaa00; }
             if(type === 'Motorcycle') { w = 0.8; h = 1.2; l = 2.2; color = 0x39ff14; }
 
-            // Vehicle Body Core
             const bodyGeo = new THREE.BoxGeometry(w, h, l);
             const bodyMat = new THREE.MeshStandardMaterial({ color: color });
             const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
@@ -202,7 +179,6 @@
             bodyMesh.castShadow = true;
             playerCar.add(bodyMesh);
 
-            // Functional Interior Dash Steering Wheel
             const wheelGeo = new THREE.TorusGeometry(0.3, 0.05, 8, 24);
             const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
             steeringWheel = new THREE.Mesh(wheelGeo, wheelMat);
@@ -214,7 +190,6 @@
         }
 
         function spawnTraffic() {
-            // Generate distinct procedural computer-controlled vehicles
             const npcMat = new THREE.MeshStandardMaterial({ color: 0x95a5a6 });
             const npcGeo = new THREE.BoxGeometry(2.4, 1.7, 4.8);
             for(let i = 0; i < 5; i++) {
@@ -226,7 +201,6 @@
         }
 
         function spawnPedestrians() {
-            // Walkers traversing crosswalk junctions
             const pedGeo = new THREE.BoxGeometry(1, 2, 1);
             const pedMat = new THREE.MeshStandardMaterial({ color: 0xd35400 });
             let ped = new THREE.Mesh(pedGeo, pedMat);
@@ -242,7 +216,6 @@
             if(e.key === 'a' || e.key === 'ArrowLeft') keys.a = state;
             if(e.key === 'd' || e.key === 'ArrowRight') keys.d = state;
             
-            // Indicator Toggle Actions Triggering Synthetic Sound Engine Click
             if(isDown && (e.key === 'q' || e.key === 'e')) {
                 playIndicatorClick();
                 document.getElementById('hud-signal').innerText = e.key.toUpperCase() + ' - BLINKING';
@@ -279,24 +252,20 @@
         function animateLoop() {
             requestAnimationFrame(animateLoop);
 
-            // Drive System Math Acceleration Physics
             if (keys.w) speed += 0.4;
             else if (keys.s) speed -= 0.6;
-            else speed *= 0.96; // Drag friction resistance
+            else speed *= 0.96;
 
-            speed = Math.max(-15, Math.min(speed, 120)); // Threshold limits
+            speed = Math.max(-15, Math.min(speed, 120));
 
-            // Turn Handling 
-            if (keys.a) { turnAngle += 0.008 * (speed/40); steeringWheel.rotation.z = 1.2; }
-            else if (keys.d) { turnAngle -= 0.008 * (speed/40); steeringWheel.rotation.z = -1.2; }
+            if (keys.a) { turnAngle += 0.015; steeringWheel.rotation.z = 1.2; }
+            else if (keys.d) { turnAngle -= 0.015; steeringWheel.rotation.z = -1.2; }
             else { steeringWheel.rotation.z *= 0.8; }
 
-            // Apply Vector Calculations to Movement Engine
             playerCar.position.z -= Math.cos(turnAngle) * (speed * 0.01);
             playerCar.position.x -= Math.sin(turnAngle) * (speed * 0.01);
             playerCar.rotation.y = turnAngle;
 
-            // Smooth chase-camera logic tracking structural position behind vehicle cockpit
             camera.position.set(
                 playerCar.position.x + Math.sin(turnAngle) * 12,
                 playerCar.position.y + 6,
@@ -304,33 +273,27 @@
             );
             camera.lookAt(playerCar.position.x, playerCar.position.y + 2, playerCar.position.z);
 
-            // AI Traffic Logic loops
             npcCars.forEach(npc => {
-                npc.position.z += 0.4; // AI movement speed
+                npc.position.z += 0.4;
                 if(npc.position.z > 500) npc.position.z = -500;
 
-                // Simple Raycast proximity calculation for cutting off / safe proximity checking
                 let dist = playerCar.position.distanceTo(npc.position);
                 if (dist < 12) {
-                    playHonkSound(); // Trigger proximity honking audio alert
+                    playHonkSound();
                 }
             });
 
-            // Simulated Collision/Ragdoll response for Walkers
             pedestrians.forEach(ped => {
                 if(ped.state === 'walking') {
                     ped.mesh.position.x += 0.05 * ped.dir;
                     if(Math.abs(ped.mesh.position.x) > 15) ped.dir *= -1;
 
-                    // Physical body structure tracking intersection points
                     if(playerCar.position.distanceTo(ped.mesh.position) < 3.5) {
                         ped.state = 'ragdoll';
-                        // Collapse matrix scaling to simulate high velocity impact displacement physics
                         ped.mesh.rotation.z = Math.PI / 2;
                         ped.mesh.position.y = 0.2;
                     }
                 } else if(ped.state === 'ragdoll') {
-                    // Send pedestrian tumbling backward away from chassis trajectory
                     ped.mesh.position.z -= 0.5;
                 }
             });
