@@ -1,11 +1,149 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>My First Website</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driving Game Menu</title>
+    <style>
+        /* Dark, clean gaming background */
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1e1e2f, #111119);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #ffffff;
+        }
+
+        h1 {
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Container for the 4 vehicle cards */
+        .menu-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+            width: 90%;
+            max-width: 1100px;
+            padding: 20px;
+        }
+
+        /* Smoothed-edge rectangle button layout */
+        .vehicle-btn {
+            background: #2a2a40;
+            border: 2px solid #3f3f5f;
+            border-radius: 16px; /* Smooth edges */
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between; /* Pushes text to the very bottom */
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            text-decoration: none;
+        }
+
+        /* Hover effects */
+        .vehicle-btn:hover {
+            transform: translateY(-10px);
+            background: #343452;
+            border-color: #00d2ff;
+            box-shadow: 0 12px 24px rgba(0, 210, 255, 0.2);
+        }
+
+        /* Wrapper to keep images centered vertically in the top space */
+        .image-wrapper {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* Clean, logo-free vehicle illustrations */
+        .vehicle-img {
+            max-width: 90%;
+            max-height: 140px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        /* Text styling at the very bottom */
+        .vehicle-text {
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ffffff;
+            margin-top: 15px;
+            width: 100%;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 15px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to My Website!</h1>
-    <p>This website is running live on Render.</p>
+
+    <h1>Select Your Vehicle</h1>
+
+    <div class="menu-container">
+
+        <!-- CAR BUTTON -->
+        <button class="vehicle-btn" onclick="startGame('car')">
+            <div class="image-wrapper">
+                <img class="vehicle-img" src="https://unsplash.com" alt="Standard Sedan">
+            </div>
+            <div class="vehicle-text">Car</div>
+        </button>
+
+        <!-- LORRY BUTTON -->
+        <button class="vehicle-btn" onclick="startGame('lorry')">
+            <div class="image-wrapper">
+                <img class="vehicle-img" src="https://unsplash.com" alt="Standard Lorry with Trailer">
+            </div>
+            <div class="vehicle-text">Lorry</div>
+        </button>
+
+        <!-- MOTORCYCLE BUTTON -->
+        <button class="vehicle-btn" onclick="startGame('motorcycle')">
+            <div class="image-wrapper">
+                <img class="vehicle-img" src="https://unsplash.com" alt="Motorcycle">
+            </div>
+            <div class="vehicle-text">Motorcycle</div>
+        </button>
+
+        <!-- BUS BUTTON -->
+        <button class="vehicle-btn" onclick="startGame('bus')">
+            <div class="image-wrapper">
+                <img class="vehicle-img" src="https://unsplash.com" alt="Bus">
+            </div>
+            <div class="vehicle-text">Bus</div>
+        </button>
+
+    </div>
+
+    <script>
+        // Placeholder function for when a user clicks a vehicle
+        function startGame(vehicleType) {
+            alert("Starting game with the " + vehicleType + "!");
+            // Future game logic code will go here
+        }
+    </script>
+
 </body>
 </html>
+
 
