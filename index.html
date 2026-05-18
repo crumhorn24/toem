@@ -3,238 +3,282 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D City Driving Simulation</title>
+    <title>3D Open World Driving Game</title>
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #111119; }
+        body, html { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #111119; user-select: none; }
+        
+        /* Menu View Layout */
         #menu-view {
-            position: absolute; width: 100%; height: 100%; z-index: 10;
+            position: absolute; width: 100%; height: 100%; z-index: 100;
             background: linear-gradient(135deg, #1e1e2f, #111119);
             display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;
         }
-        h1 { font-size: 2.5rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 40px; }
+        h1 { font-size: 2.5rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 40px; text-align: center; }
         .menu-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; width: 85%; max-width: 1000px; }
         .vehicle-btn {
-            background: #2a2a40; border: 2px solid #3f3f5f; border-radius: 16px; height: 250px;
+            background: #2a2a40; border: 2px solid #3f3f5f; border-radius: 16px; height: 220px;
             display: flex; flex-direction: column; align-items: center; justify-content: space-between;
             padding: 20px; cursor: pointer; transition: all 0.3s ease;
         }
         .vehicle-btn:hover { transform: translateY(-8px); border-color: #00d2ff; background: #343452; }
-        .vehicle-svg { width: 70%; height: auto; max-height: 100px; }
+        .vehicle-svg { width: 70%; height: auto; max-height: 90px; }
         .vehicle-text { font-size: 1.2rem; font-weight: bold; text-transform: uppercase; color: white; border-top: 1px solid rgba(255,255,255,0.1); width: 100%; text-align: center; padding-top: 10px; }
-        #canvas-container { width: 100%; height: 100vh; display: none; }
-        #hud {
-            position: absolute; top: 20px; left: 20px; color: white; font-weight: bold;
-            background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; display: none; pointer-events: none;
+        
+        /* 3D Viewport Engine Horizon Projection */
+        #game-viewport {
+            display: none; width: 100vw; height: 100vh; position: relative;
+            background: linear-gradient(to bottom, #87ceeb 0%, #b0e0e6 45%, #2e4a23 45%, #1e3316 100%);
+            perspective: 500px; overflow: hidden;
         }
-        #controls-hint { position: absolute; bottom: 20px; right: 20px; color: #aaa; font-size: 0.9rem; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; display: none; }
+
+        /* 3D World Transformation Layer */
+        #world-3d {
+            position: absolute; width: 2000px; height: 2000px;
+            left: 50%; top: 50%; margin-left: -1000px; margin-top: -1000px;
+            transform-style: preserve-3d;
+            transform: rotateX(76deg) translateY(-300px) translateZ(-140px);
+        }
+
+        /* 3D Highway Construction */
+        .asphalt-highway {
+            position: absolute; width: 260px; height: 2000px;
+            left: 870px; background: #282828;
+            border-left: 6px solid #ffffff; border-right: 6px solid #ffffff;
+        }
+        .center-divider {
+            position: absolute; width: 4px; height: 2000px; left: 998px;
+            background: repeating-linear-gradient(to bottom, #ffcc00 0px, #ffcc00 50px, transparent 50px, transparent 100px);
+        }
+        .zebra-crossing {
+            position: absolute; width: 260px; height: 70px; left: 870px; top: 1300px;
+            background: repeating-linear-gradient(to right, #ffffff 0px, #ffffff 25px, transparent 25px, transparent 50px);
+        }
+
+        /* 3D City Buildings Blocks */
+        .building-3d {
+            position: absolute; width: 90px; height: 180px; background: #546e7a;
+            border: 2px solid #37474f; transform: rotateX(-90deg) translateZ(90px);
+            box-shadow: 0 0 15px rgba(0,0,0,0.4); text-align: center; line-height: 180px; font-size: 45px;
+        }
+
+        .npc-vehicle {
+            position: absolute; width: 44px; height: 85px; background: #e91e63;
+            border-radius: 6px; transform: translateZ(2px);
+        }
+
+        .pedestrian-3d {
+            position: absolute; width: 16px; height: 44px; background: #ff9800;
+            border-radius: 3px; transform: rotateX(-90deg) translateZ(22px);
+        }
+
+        /* Cockpit Dash Frame & Turning Steering Wheel Structure */
+        #cockpit-view {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 32vh;
+            background: linear-gradient(to top, #15151c 75%, #252535 100%);
+            border-top: 4px solid #2d2d3a; display: flex; align-items: center; justify-content: center; z-index: 10;
+        }
+        #steering-wheel {
+            width: 170px; height: 170px; border: 16px solid #2b2b36; border-radius: 50%;
+            position: relative; box-shadow: inset 0 0 12px rgba(0,0,0,0.8), 0 4px 10px rgba(0,0,0,0.5);
+        }
+        #steering-wheel::before {
+            content: ''; position: absolute; width: 100%; height: 14px; background: #2b2b36; top: 50%; margin-top: -7px;
+        }
+        #steering-wheel::after {
+            content: ''; position: absolute; width: 14px; height: 50%; background: #2b2b36; left: 50%; margin-left: -7px; bottom: 0;
+        }
+
+        /* Telemetry Dashboard Hud */
+        #dashboard-hud {
+            position: absolute; top: -65px; left: 25px; background: rgba(15,15,22,0.95);
+            border: 2px solid #00d2ff; padding: 10px 20px; border-radius: 10px; color: white;
+            font-weight: bold; font-family: monospace; font-size: 1rem; box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+        }
+        .signal-indicator { display: inline-block; width: 12px; height: 12px; background: #333; border-radius: 50%; margin-left: 4px; }
+        .signal-active { background: #ffaa00; box-shadow: 0 0 8px #ffaa00; }
+        #controls-legend { position: absolute; top: -40px; right: 25px; color: #777; background: rgba(0,0,0,0.7); padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; }
     </style>
-    
-    <!-- This links directly to the local three.js file you uploaded -->
-    <script src="three.js"></script>
 </head>
 <body>
 
-    <!-- VEHICLE SELECTION MENU -->
+    <!-- SELECTION MENU -->
     <div id="menu-view">
         <h1>Select Your Vehicle</h1>
         <div class="menu-container">
-            <button class="vehicle-btn" onclick="initGame('Car')">
+            <button class="vehicle-btn" onclick="launch3D('Car')">
                 <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#00d2ff" stroke-width="1.5"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
                 <div class="vehicle-text">Car</div>
             </button>
-            <button class="vehicle-btn" onclick="initGame('Lorry')">
+            <button class="vehicle-btn" onclick="launch3D('Lorry')">
                 <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#ff007f" stroke-width="1.5"><path d="M14 18H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h11v13zM14 9h4l3 3v5a1 1 0 0 1-1 1h-6V9z"/><circle cx="5.5" cy="18" r="1.5"/><circle cx="11.5" cy="18" r="1.5"/><circle cx="17.5" cy="18" r="1.5"/></svg>
                 <div class="vehicle-text">Lorry</div>
             </button>
-            <button class="vehicle-btn" onclick="initGame('Motorcycle')">
+            <button class="vehicle-btn" onclick="launch3D('Motorcycle')">
                 <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#39ff14" stroke-width="1.5"><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M5 18l3-5h6l3 5M8 13l2-5h4l1 3"/></svg>
                 <div class="vehicle-text">Motorcycle</div>
             </button>
-            <button class="vehicle-btn" onclick="initGame('Bus')">
+            <button class="vehicle-btn" onclick="launch3D('Bus')">
                 <svg class="vehicle-svg" viewBox="0 0 24 24" fill="none" stroke="#ffaa00" stroke-width="1.5"><path d="M4 18h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2zM2 14h20M2 10h20M6 4v6M12 4v6M18 4v6"/><circle cx="6" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg>
                 <div class="vehicle-text">Bus</div>
             </button>
         </div>
     </div>
 
-    <div id="canvas-container"></div>
+    <!-- 3D HIGHWAY ENGINE GRAPHICS -->
+    <div id="game-viewport">
+        <div id="world-3d">
+            <div class="asphalt-highway"></div>
+            <div class="center-divider"></div>
+            <div class="zebra-crossing"></div>
 
-    <div id="hud">
-        Vehicle: <span id="hud-type">-</span><br>
-        Speed: <span id="hud-speed">0</span> KM/H<br>
-        Indicator: <span id="hud-signal">OFF</span>
+            <!-- City Infrastructure Column Blocks -->
+            <div class="building-3d" style="left: 740px; top: 100px;">🏢</div>
+            <div class="building-3d" style="left: 1170px; top: 350px;">🏢</div>
+            <div class="building-3d" style="left: 740px; top: 750px;">🏢</div>
+            <div class="building-3d" style="left: 1170px; top: 950px;">🏢</div>
+            <div class="building-3d" style="left: 740px; top: 1350px;">🏢</div>
+
+            <!-- Moving Targets -->
+            <div id="npc-car" class="npc-vehicle"></div>
+            <div id="pedestrian" class="pedestrian-3d"></div>
+        </div>
+
+        <!-- INSTRUMENT DASHBOARD PANEL -->
+        <div id="cockpit-view">
+            <div id="steering-wheel"></div>
+
+            <div id="dashboard-hud">
+                GEAR TYPE: <span id="hud-type">CAR</span><br>
+                VELOCITY: <span id="hud-speed">0</span> KM/H<br>
+                SIGNALS: 
+                <span id="ind-l" class="signal-indicator"></span>
+                <span id="ind-r" class="signal-indicator"></span>
+            </div>
+            
+            <div id="controls-legend">WASD or Arrow Keys : Drive | Q / E : Blinker Indicators</div>
+        </div>
     </div>
-    <div id="controls-hint">W/S: Accelerate/Brake | A/D: Turn Steering Wheel | Q/E: Indicators</div>
 
     <script>
-        let scene, camera, renderer, playerCar, steeringWheel;
-        let keys = { w:0, a:0, s:0, d:0 };
-        let speed = 0, turnAngle = 0;
-        let npcCars = [], pedestrians = [];
         let audioCtx;
+        let keys = { w:0, a:0, s:0, d:0 };
+        let speed = 0;
+        let roadY = -300;
+        let roadX = 0;
+        let wheelTurn = 0;
+        
+        let npc = { x: 1000, y: 300, speed: 5, honkCooldown: 0 };
+        let ped = { x: 880, y: 1310, dir: 1, state: 'walking', tumble: 0, height: 0 };
+        let indicators = { left: false, right: false, clock: 0 };
 
         function initAudio() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        window.initGame = function(selectedType) {
+        window.launch3D = function(type) {
             initAudio();
             document.getElementById('menu-view').style.display = 'none';
-            document.getElementById('canvas-container').style.display = 'block';
-            document.getElementById('hud').style.display = 'block';
-            document.getElementById('controls-hint').style.display = 'block';
-            document.getElementById('hud-type').innerText = selectedType;
-
-            setup3DWorld(selectedType);
+            document.getElementById('game-viewport').style.display = 'block';
+            document.getElementById('hud-type').innerText = type.toUpperCase();
+            
+            window.addEventListener('keydown', (e) => handleDriveInput(e, true));
+            window.addEventListener('keyup', (e) => handleDriveInput(e, false));
+            
+            setInterval(engineTick, 20);
         };
 
-        function setup3DWorld(type) {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87ceeb);
+        function handleDriveInput(e, isDown) {
+            const val = isDown ? 1 : 0;
+            if (e.key === 'w' || e.key === 'ArrowUp') keys.w = val;
+            if (e.key === 's' || e.key === 'ArrowDown') keys.s = val;
+            if (e.key === 'a' || e.key === 'ArrowLeft') keys.a = val;
+            if (e.key === 'd' || e.key === 'ArrowRight') keys.d = val;
 
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            
-            // FIX: This automatically checks whether to use the old style or the brand new v184 style renderer
-            if (typeof THREE.WebGLRenderer !== 'undefined') {
-                renderer = new THREE.WebGLRenderer({ antialias: true });
-            } else {
-                renderer = new THREE.WebGPURenderer({ antialias: true });
-            }
-            
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-            const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
-            sunLight.position.set(40, 80, 40);
-            scene.add(sunLight);
-            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-
-            // Ground
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshStandardMaterial({ color: 0x4caf50 }));
-            floor.rotation.x = -Math.PI / 2;
-            scene.add(floor);
-
-            // Asphalt Street
-            const street = new THREE.Mesh(new THREE.PlaneGeometry(40, 2000), new THREE.MeshStandardMaterial({ color: 0x333333 }));
-            street.rotation.x = -Math.PI / 2;
-            street.position.y = 0.02;
-            scene.add(street);
-
-            // 3D Buildings
-            const bGeo = new THREE.BoxGeometry(20, 50, 20);
-            const bMat = new THREE.MeshStandardMaterial({ color: 0x90a4ae });
-            for(let i = -800; i < 800; i += 120) {
-                if (Math.abs(i) < 60) continue;
-                let bLeft = new THREE.Mesh(bGeo, bMat); bLeft.position.set(-40, 25, i); scene.add(bLeft);
-                let bRight = new THREE.Mesh(bGeo, bMat); bRight.position.set(40, 25, i); scene.add(bRight);
-            }
-
-            // Create Chosen Vehicle + Cockpit Elements
-            playerCar = new THREE.Group();
-            let w = 2.6, h = 1.6, l = 5.5, color = 0x00d2ff;
-            if(type === 'Lorry') { h = 4.2; l = 13; color = 0xff007f; }
-            if(type === 'Bus') { h = 3.8; l = 15; color = 0xffaa00; }
-            if(type === 'Motorcycle') { w = 0.9; h = 1.3; l = 2.4; color = 0x39ff14; }
-
-            const box = new THREE.Mesh(new THREE.BoxGeometry(w, h, l), new THREE.MeshStandardMaterial({ color: color }));
-            box.position.y = h/2 + 0.4;
-            playerCar.add(box);
-
-            steeringWheel = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.04, 6, 18), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
-            steeringWheel.position.set(w * 0.22, h * 0.75, l * 0.18);
-            playerCar.add(steeringWheel);
-            playerCar.position.set(-5, 0, 0);
-            scene.add(playerCar);
-
-            // Traffic
-            const npcMat = new THREE.MeshStandardMaterial({ color: 0x607d8b });
-            const npcGeo = new THREE.BoxGeometry(2.6, 1.7, 5.5);
-            for(let i = 0; i < 4; i++) {
-                let npc = new THREE.Mesh(npcGeo, npcMat); npc.position.set(5, 1.2, -150 - (i * 150));
-                scene.add(npc); npcCars.push(npc);
-            }
-
-            // Pedestrians
-            const pedGeo = new THREE.BoxGeometry(1, 2.4, 1);
-            const pedMat = new THREE.MeshStandardMaterial({ color: 0xff5722 });
-            let ped = new THREE.Mesh(pedGeo, pedMat); ped.position.set(-15, 1.2, 150);
-            scene.add(ped); pedestrians.push({ mesh: ped, dir: 1, state: 'walking' });
-
-            window.addEventListener('keydown', (e) => handleInput(e, true));
-            window.addEventListener('keyup', (e) => handleInput(e, false));
-            window.addEventListener('resize', onWindowResize);
-
-            animate3DLoop();
-        }
-
-        function handleInput(e, isDown) {
-            const state = isDown ? 1 : 0;
-            if(e.key === 'w' || e.key === 'ArrowUp') keys.w = state;
-            if(e.key === 's' || e.key === 'ArrowDown') keys.s = state;
-            if(e.key === 'a' || e.key === 'ArrowLeft') keys.a = state;
-            if(e.key === 'd' || e.key === 'ArrowRight') keys.d = state;
-            
-            if(isDown && (e.key === 'q' || e.key === 'e')) {
-                if(audioCtx) {
-                    let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
-                    osc.frequency.setValueAtTime(550, audioCtx.currentTime); gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
-                    osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.05);
-                }
-                document.getElementById('hud-signal').innerText = e.key.toUpperCase() + ' - BLINKING';
+            if (isDown) {
+                if (e.key === 'q') { indicators.left = !indicators.left; indicators.right = false; beep(); }
+                if (e.key === 'e') { indicators.right = !indicators.right; indicators.left = false; beep(); }
             }
         }
 
-        function animate3DLoop() {
-            requestAnimationFrame(animate3DLoop);
+        function beep() {
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+        }
 
+        function playHonk() {
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+        }
+
+        function engineTick() {
+            // Velocity calculations
             if (keys.w) speed += 0.5;
-            else if (keys.s) speed -= 0.8;
+            else if (keys.s) speed -= 0.7;
             else speed *= 0.95;
-            speed = Math.max(-15, Math.min(speed, 130));
+            speed = Math.max(-4, Math.min(speed, 120));
 
-            if (keys.a) { turnAngle += 0.018; steeringWheel.rotation.z = 1.3; }
-            else if (keys.d) { turnAngle -= 0.018; steeringWheel.rotation.z = -1.3; }
-            else { steeringWheel.rotation.z *= 0.8; }
+            // Steer wheel turn vectors
+            if (keys.a) { roadX += (speed * 0.07); wheelTurn = Math.max(-100, wheelTurn - 7); }
+            else if (keys.d) { roadX -= (speed * 0.07); wheelTurn = Math.min(100, wheelTurn + 7); }
+            else { wheelTurn *= 0.8; }
 
-            playerCar.position.z -= Math.cos(turnAngle) * (speed * 0.01);
-            playerCar.position.x -= Math.sin(turnAngle) * (speed * 0.01);
-            playerCar.rotation.y = turnAngle;
+            roadX = Math.max(-85, Math.min(roadX, 85));
+            roadY += speed * 0.55;
+            if (roadY > 600) roadY = -400;
 
-            camera.position.set(playerCar.position.x + Math.sin(turnAngle) * 14, playerCar.position.y + 6, playerCar.position.z + Math.cos(turnAngle) * 14);
-            camera.lookAt(playerCar.position.x, playerCar.position.y + 1.2, playerCar.position.z);
+            // Apply style animations
+            document.getElementById('steering-wheel').style.transform = `rotate(${wheelTurn}deg)`;
+            document.getElementById('world-3d').style.transform = `rotateX(77deg) translateY(${roadY}px) translateX(${roadX}px) translateZ(-150px)`;
 
-            npcCars.forEach(npc => {
-                npc.position.z += 0.5;
-                if(npc.position.z > 600) npc.position.z = -600;
-                if (playerCar.position.distanceTo(npc.position) < 14 && audioCtx) {
-                    let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain(); osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(420, audioCtx.currentTime); gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-                    osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+            // NPC Loop
+            npc.y += npc.speed - (speed * 0.55);
+            if (npc.y > 1800) { npc.y = -200; npc.x = 900 + Math.random() * 140; }
+            let npcEl = document.getElementById('npc-car');
+            npcEl.style.left = `${npc.x}px`;
+            npcEl.style.top = `${npc.y}px`;
+
+            // Proximity honking trigger parameters
+            if (Math.abs(1000 - npc.y) < 120 && Math.abs(roadX + (npc.x - 1000)) < 35) {
+                if (npc.honkCooldown <= 0) { playHonk(); npc.honkCooldown = 70; }
+            }
+            if (npc.honkCooldown > 0) npc.honkCooldown--;
+
+            // Pedestrian physics matrix
+            let pedEl = document.getElementById('pedestrian');
+            if (ped.state === 'walking') {
+                ped.x += ped.dir * 1.5;
+                if (Math.abs(ped.x - 1000) > 100) ped.dir *= -1;
+
+                if (Math.abs(1400 - ped.y - roadY) < 45 && Math.abs((1000 - roadX) - ped.x) < 30) {
+                    ped.state = 'ragdoll';
                 }
-            });
+            } else if (ped.state === 'ragdoll') {
+                ped.tumble += 0.18;
+                ped.height = Math.min(100, ped.height + 5);
+                ped.y -= 7;
+            }
+            
+            if (ped.y < -300) { ped.y = 1310; ped.x = 880; ped.height = 0; ped.tumble = 0; ped.state = 'walking'; }
+            pedEl.style.left = `${ped.x}px`;
+            pedEl.style.top = `${ped.y}px`;
+            pedEl.style.transform = `rotateX(-90deg) rotateY(${ped.tumble}rad) translateZ(${22 + ped.height}px)`;
 
-            pedestrians.forEach(ped => {
-                if(ped.state === 'walking') {
-                    ped.mesh.position.x += 0.07 * ped.dir;
-                    if(Math.abs(ped.mesh.position.x) > 16) ped.dir *= -1;
-                    if(playerCar.position.distanceTo(ped.mesh.position) < 3.8) {
-                        ped.state = 'ragdoll'; ped.mesh.rotation.z = Math.PI / 2; ped.mesh.position.y = 0.2;
-                    }
-                } else if(ped.state === 'ragdoll') {
-                    ped.mesh.position.z -= 0.8;
-                }
-            });
-
-            document.getElementById('hud-speed').innerText = Math.round(Math.abs(speed));
-            renderer.render(scene, camera);
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            // Flashing Dashboard Indicators lights loop
+            indicators.clock++;
+            let flashOn = Math.floor(indicators.clock / 12) % 2 === 0;
+            document.getElementById('ind-l').className = `signal-indicator ${indicators.left && flashOn ? 'signal-active' : ''}`;
+            document.getElementById('ind-r').className = `signal-indicator ${indicators.right && flashOn ? 'signal-active' : ''}`;
+            document.getElementById('hud-speed').innerText = Math.round(speed);
         }
     </script>
 </body>
 </html>
-
